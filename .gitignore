@@ -1,0 +1,13 @@
+.venv*/
+.local/
+*.sqlite3*
+*.py[cod]
+__pycache__/
+.env
+.env.*
+!.env.example
+uploads/
+backups/
+private/
+staticfiles/
+
