@@ -1,0 +1,5 @@
+<h2>我的学习</h2><section class="panel"><h3>最近截止</h3>{% for work in pending %}<p><a href="/assignments/{{ work.pk }}/">{{ work.title }}</a> · {{ work.due_at|date:"m-d H:i" }} 截止</p>{% empty %}<p>目前没有临近截止的待交作业。</p>{% endfor %}
+<h3>最近回执</h3>{% if receipt %}<p><a href="/submissions/{{ receipt.pk }}/">{{ receipt.assignment.title }} · V{{ receipt.version }}</a> · {{ receipt.received_at|date:"m-d H:i" }}</p>{% else %}<p>尚无成功收件。</p>{% endif %}
+<h3>最近公布成绩</h3>{% if grade %}<p>{{ grade.release.assignment.title }} · {{ grade.score|floatformat:"-2" }} / {{ grade.max_points }} · V{{ grade.submission.version }}</p>{% else %}<p>尚无已发布成绩。</p>{% endif %}
+<p class="actions"><a href="/assignments/">我的作业</a><a href="/me/grades/">我的成绩</a><a href="/me/mistakes/">我的错题</a></p></section>
+<h2>我的课程</h2>{% for group in groups %}<p>{% if group.course.publication %}<a href="/courses/{{ group.course_id }}/">{{ group.course.publication.revision.title }}</a>{% else %}{{ group.course.title }} · 等待发布资料{% endif %} · {{ group.code }}</p>{% endfor %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block title %}标准答案 · {{ task.title }}{% endblock %}{% block content %}
+<p><a href="/assignments/{{ task.pk }}/">{{ task.teaching_class }} · {{ task.title }}</a></p><h1>编辑标准答案</h1>
+<p>本班截止 {{ task.due_at|date:"Y-m-d H:i" }}（北京时间）。{% if published %}已公布 R{{ published.revision.seq }} · {{ published.released_at|date:"m-d H:i" }}{% else %}尚未向学生公布{% endif %}</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<input name="version" type="hidden" value="{{ key.seq|default:0 }}">
+<label>试卷名称 <input name="paper" maxlength="80" value="{{ key.paper.code|default:task.title }}" required></label>
+<label>试卷版本 <input name="paper_version" type="number" min="1" value="{{ key.paper.version|default:1 }}" required></label>
+<div id="key-rows">{% for e in entries %}<fieldset><legend>试题 {{ e.answer.question.number }}</legend>
+<label>题号 <input name="number" value="{{ e.answer.question.number }}"></label><label>知识点 <input name="topic" value="{{ e.answer.question.topic }}"></label>
+<label>题干 <textarea name="prompt">{{ e.answer.question.prompt }}</textarea></label><label>标准答案 <textarea name="answer">{{ e.answer.text }}</textarea></label></fieldset>{% endfor %}
+<fieldset id="blank-question"><legend>新题目</legend><label>题号 <input name="number"></label><label>知识点 <input name="topic"></label><label>题干 <textarea name="prompt"></textarea></label><label>标准答案 <textarea name="answer"></textarea></label></fieldset></div>
+<button type="button" id="add-question">再加一题</button>
+<p><label>答案附件 PDF <input type="file" name="file" accept="application/pdf"></label></p>
+{% if key.file_id %}<p><a href="{{ key.pk }}/preview/">预览已保存的答案 PDF</a> · <label><input type="checkbox" name="remove_file">此次修订移除附件</label></p>{% endif %}
+<button name="action" value="save">保存新修订</button></form>
+{% if key %}<hr><h2>公布 R{{ key.seq }}</h2><p>公布后本班所有在读学生都可查看，包括未提交作业者。</p><form method="post">{% csrf_token %}<input type="hidden" name="revision" value="{{ key.pk }}"><input type="hidden" name="request_key" value="{{ request_key }}"><button name="action" value="publish">向本班发布标准答案</button></form>{% endif %}
+<script>document.getElementById('add-question').onclick=()=>{const row=document.getElementById('blank-question').cloneNode(true);row.removeAttribute('id');row.querySelectorAll('input,textarea').forEach(field=>field.value='');document.getElementById('key-rows').append(row);row.querySelector('input').focus()};</script>{% endblock %}

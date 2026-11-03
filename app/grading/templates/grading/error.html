@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block title %}请核对本次操作{% endblock %}{% block content %}
+<h1>本次操作未保存</h1><p role="alert">{{ error }}</p>
+{% if submitted %}<details><summary>查看本次输入</summary><p>可以复制这些内容，再打开当前版本核对。附件需要重新选择。</p>
+<dl>{% for key,value in submitted %}<dt>{{ key }}</dt><dd style="overflow-wrap:anywhere">{{ value|linebreaksbr }}</dd>{% endfor %}</dl></details>{% endif %}
+<p><a href="{{ path }}">重新打开当前页面</a> · <a href="/me/">个人主页</a></p>{% endblock %}

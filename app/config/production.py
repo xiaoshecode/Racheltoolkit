@@ -9,6 +9,7 @@ def required(name):
     return value
 
 SECRET_KEY = required("DJANGO_SECRET_KEY")
+DEBUG = False
 if len(SECRET_KEY) < 50 or len(set(SECRET_KEY)) < 5:
     raise ImproperlyConfigured("Set a unique high entropy DJANGO_SECRET_KEY")
 ALLOWED_HOSTS = [required("TEACH_HOST")]

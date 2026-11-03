@@ -25,12 +25,17 @@ class Command(BaseCommand):
         if digest(db) != manifest["database_sha256"]:
             raise CommandError("Database checksum mismatch")
         rows = inventory(db)
+        libraries = {row["library_id"] for row in rows}
+        if len(libraries) > 1:
+            raise CommandError("This installation requires a single private teaching library")
         if rows != [{k:v for k,v in row.items() if k != "copied"} for row in manifest["objects"]]:
             raise CommandError("Manifest is inconsistent with database inventory")
         with tempfile.TemporaryDirectory(prefix=".restore-", dir=target.parent) as tmp:
             restored = Path(tmp) / "restored"
             restored.mkdir(mode=0o700)
             shutil.copyfile(db, restored / "school.sqlite3")
+            if libraries:
+                (restored / "restored-library.txt").write_text(libraries.pop(), encoding="utf-8")
             count = 0
             for row in manifest["objects"]:
                 validate_path(row["path"])

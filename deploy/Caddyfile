@@ -1,6 +1,11 @@
 {$TEACH_HOST} {
     encode gzip
-    request_body {
+    @courses path /teacher/courses/*
+    request_body @courses {
+        max_size 105MB
+    }
+    @ordinary not path /teacher/courses/*
+    request_body @ordinary {
         max_size 22MB
     }
     handle_path /static/* {

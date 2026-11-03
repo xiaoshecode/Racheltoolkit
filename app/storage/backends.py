@@ -196,6 +196,9 @@ def backend_name():
 
 def library_id():
     if backend_name() == "local":
+        marker = settings.RUNTIME / "restored-library.txt"
+        if marker.is_file():
+            return marker.read_text(encoding="utf-8").strip()
         return "local"
     value = os.getenv("SEAFILE_LIBRARY_ID", "").strip()
     if backend_name() != "seafile" or not value:

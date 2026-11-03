@@ -92,7 +92,7 @@ function showRecovery(message, retry) {
   one("#anno-recovery").hidden = false;
   if (editable) action("retry").hidden = !retry;
 }
-async function openFile(retry=false) {
+async function openFile(retry=false, targetPage=1) {
   const revision = ++loadId;
   ++paintId;
   stroke = null;
@@ -125,6 +125,7 @@ async function openFile(retry=false) {
       showRecovery(info.state === "failed" ? "预览生成失败，可以下载原件。" : "等待工作进程生成预览，可先下载原件。",info.state === "failed");
       return;
     }
+    if (Number.isInteger(targetPage) && targetPage >= 1 && targetPage <= info.pages.length) page = targetPage;
     if (current.kind === "image") {
       const image = new Image(); image.src = current.preview_url; await image.decode();
       if (revision !== loadId) return;
@@ -207,4 +208,7 @@ root.addEventListener("click",async e=>{
 files.forEach((file,i) => select.add(new Option((i+1) + " · " + file.name,String(i))));
 select.addEventListener("change",()=>openFile());
 new ResizeObserver(layout).observe(one(".anno-scroll"));
-sync(); openFile();
+const params = new URLSearchParams(location.search);
+const pinned = files.findIndex(file => String(file.id) === params.get("attachment"));
+if (pinned >= 0) select.value = String(pinned);
+sync(); openFile(false, pinned >= 0 ? Number(params.get("page")) : 1);

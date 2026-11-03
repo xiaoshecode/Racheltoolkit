@@ -7,7 +7,7 @@ services:
     volumes:
       - teaching-data:/data
       - public-static:/data/staticfiles
-    command: [sh, -ec, "python app/manage.py check --deploy --fail-level WARNING && python app/manage.py migrate --noinput && python app/manage.py collectstatic --noinput && exec waitress-serve --listen=0.0.0.0:8000 --threads=12 --max-request-body-size=23068672 config.wsgi:application"]
+    command: [sh, -ec, "python app/manage.py check --deploy --fail-level WARNING && python app/manage.py migrate --noinput && python app/manage.py collectstatic --noinput && exec waitress-serve --listen=0.0.0.0:8000 --threads=12 --trusted-proxy='*' --trusted-proxy-headers=x-forwarded-proto --max-request-body-size=110100480 config.wsgi:application"]
   https:
     image: caddy:2
     restart: unless-stopped

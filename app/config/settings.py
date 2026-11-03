@@ -5,12 +5,12 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 RUNTIME = Path(os.environ.get("TEACH_DATA_DIR", BASE_DIR / ".local"))
 RUNTIME.mkdir(parents=True, exist_ok=True)
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "development-only-key")
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
 INSTALLED_APPS = [
     "django.contrib.auth", "django.contrib.contenttypes", "django.contrib.sessions",
     "django.contrib.messages", "django.contrib.staticfiles",
-    "django.contrib.admin", "school", "storage", "operations", "submissions",
+    "django.contrib.admin", "school", "storage", "operations", "submissions", "catalog", "grading", "dashboard",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block title %}课程目录 · 吉老师个人教学空间{% endblock %}
+{% block content %}<p class="eyebrow">共享教学资料</p><h1>课程与讲义</h1><p>从课程目录找到章节、讲义和课堂课件。</p>
+{% if can_edit %}<p><a href="{% url 'catalog_teacher_courses' %}">编辑我的课程</a></p>{% endif %}
+{% if is_teacher %}<p><a href="/dashboard/">班级成绩册</a></p>{% endif %}
+{% for item in publications %}<article class="panel"><h2><a href="{% url 'catalog_course' item.course_id %}">{{ item.revision.title }}</a></h2><p>{{ item.revision.intro }}</p><small>发布于 {{ item.revision.published_at|date:"Y-m-d H:i" }} · {{ item.revision.sections.all|length }} 章</small></article>{% empty %}<p class="notice">尚无已发布课程。</p>{% endfor %}{% endblock %}

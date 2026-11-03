@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}我的错题{% endblock %}{% block content %}<p>个人学习记录</p><h1>我的错题</h1>
+<form method="get"><label>课程、试卷、题号或知识点 <input name="q" value="{{ q }}"></label><label>复习状态 <select name="state"><option value="">全部</option><option value="0" {% if request.GET.state == "0" %}selected{% endif %}>待复习</option><option value="1" {% if request.GET.state == "1" %}selected{% endif %}>已复习</option></select></label><button>筛选</button></form>
+{% for c in cards %}<section><p>{{ c.assignment.teaching_class.course.title }} · {{ c.question.paper.code }} 第 {{ c.question.paper.version }} 版</p>
+<h2>第 {{ c.question.number }} 题 · {{ c.question.topic }}</h2><p>{{ c.question.prompt }}</p><p>错因 · {{ c.reason }}</p>
+<p>当时公布的答案 · {{ c.answer.text|linebreaksbr }}</p>
+<p><a href="{% url 'grading:grade_detail' c.grade_id %}?attachment={{ c.attachment_id }}&amp;page={{ c.page }}">回到 V{{ c.grade.submission.version }} 的第 {{ c.page }} 页批阅</a></p>
+<form method="post" action="{% url 'grading:review_card' c.pk %}">{% csrf_token %}{% if c.reviewed %}<button name="reviewed" value="0">已复习 · 重新列入待复习</button>{% else %}<button name="reviewed" value="1">标记已复习</button>{% endif %}</form></section>{% empty %}<p>暂无符合条件的已公布错题。</p>{% endfor %}{% endblock %}

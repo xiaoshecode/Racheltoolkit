@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block title %}个人主页{% endblock %}
+{% extends "base.html" %}{% load student_home %}{% block title %}个人主页{% endblock %}
 {% block content %}
 <h1>{{ user.first_name|default:user.username }}的教学空间</h1>
 <p>当前账号 <strong>{{ user.username }}</strong></p>
@@ -9,6 +9,7 @@
 {% if editing %}<p><a href="/teacher/courses/">编辑课程</a></p>{% endif %}
 {% endif %}
 {% if classes %}<h2>我的班级</h2><ul>{% for group in classes %}<li>{{ group }}</li>{% endfor %}</ul>{% elif not teaching and not editing %}<p>暂无有效选课，请联系任课教师。</p>{% endif %}
-{% if classes or teaching %}<p><a href="/dashboard/">打开教学工作区</a></p>{% endif %}
+{% if classes %}{% student_home user %}{% endif %}
+{% if teaching %}<p><a href="/dashboard/">打开班级成绩册</a></p>{% endif %}
 <form method="post" action="{% url 'school:logout' %}">{% csrf_token %}<button>退出登录</button></form>
 {% endblock %}

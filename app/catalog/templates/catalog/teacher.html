@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<p class="eyebrow">教师工作区</p><h1>课程编辑</h1>{% for course in courses %}<p><a href="{% url 'catalog_editor' course.pk %}">{{ course.title }}</a></p>{% endfor %}{% endblock %}

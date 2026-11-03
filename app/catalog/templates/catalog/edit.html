@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block title %}编辑课程 · {{ rev.title }}{% endblock %}
+{% block content %}<p class="eyebrow">教师工作区 / <a href="{% url 'catalog_teacher_courses' %}">课程编辑</a></p>
+<h1>{{ rev.title }}</h1><p>当前草稿版本 {{ rev.edit_version }}。每次保存后可预览整门课程。</p>
+<p class="actions"><a href="{% url 'catalog_preview' rev.course_id %}">预览草稿</a><a href="{% url 'catalog_course' rev.course_id %}">查看公开课程</a></p>
+{% if error %}<div class="notice" role="alert">{{ error }}{% if submitted.title or submitted.body or submitted.intro %}<details open><summary>刚才提交的内容</summary><p>{{ submitted.title }}</p><p>{{ submitted.body|linebreaksbr }}{{ submitted.intro|linebreaksbr }}</p></details>{% endif %}</div>{% endif %}
+<form class="panel" method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><h2>课程介绍</h2>
+<p><label>课程名称<input name="title" value="{{ rev.title }}" maxlength="160" required></label></p>
+<p><label>简介<textarea name="intro" rows="3">{{ rev.intro }}</textarea></label></p><button name="action" value="course">保存课程介绍</button></form>
+{% for sec in rev.sections.all %}<section class="panel"><h2>{{ forloop.counter }} · {{ sec.title }}</h2><form method="post">{% csrf_token %}
+<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}">
+<p><label>章节名称<input name="title" value="{{ sec.title }}" maxlength="160" required></label></p><p><label>章节正文<textarea name="body" rows="4">{{ sec.body }}</textarea></label></p>
+<div class="actions"><button name="action" value="section">保存本章</button>{% if not forloop.first %}<button name="action" value="up">上移</button>{% endif %}{% if not forloop.last %}<button name="action" value="down">下移</button>{% endif %}<button name="action" value="delete_section">从草稿移除章节</button></div></form>
+<h3>本章资料</h3>{% for item in sec.materials.all %}<p>{{ item.title }} · {{ item.original_file.original_name }}{% if not item.preview_file_id %} · 等待生成预览{% endif %}</p>
+<form method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}"><input type="hidden" name="material" value="{{ item.stable_key }}"><button name="action" value="remove">从草稿移除 {{ item.title }}</button></form>{% empty %}<p>尚无资料。</p>{% endfor %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}">
+<p><label>新增或替换<select name="material"><option value="">新增资料</option>{% for item in sec.materials.all %}<option value="{{ item.stable_key }}">替换 {{ item.title }}</option>{% endfor %}</select></label></p>
+<p><label>资料名称<input name="title" maxlength="160"></label></p><p><label>课件原件<input type="file" name="original" accept=".ppt,.pptx,.doc,.docx,.pdf" required></label></p>
+<p><label>配套 PDF 预览（可选）<input type="file" name="preview" accept=".pdf"></label></p><small>每份文件最多 50 MiB。Office 原件可附 PDF 或等待服务器生成预览。</small><p><button name="action" value="upload">保存资料至草稿</button></p></form></section>{% endfor %}
+<form class="panel" method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><h2>新增章节</h2>
+<p><label>章名<input name="title" required maxlength="160"></label></p><p><label>正文<textarea name="body" rows="3"></textarea></label></p><button name="action" value="add_section">添加到草稿</button></form>
+<form class="panel" method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><h2>发布课程</h2><p>发布后，全部访客可访问本版章节与资料。</p><button name="action" value="publish">确认发布整门课程</button></form>{% endblock %}

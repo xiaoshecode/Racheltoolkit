@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block title %}批阅 · {{ sub.student.first_name }} V{{ sub.version }}{% endblock %}
+{% block content %}<p><a href="/assignments/{{ sub.assignment_id }}/">返回{{ sub.assignment.title }}</a></p>
+<h1>批阅 {{ sub.student.first_name|default:sub.student.username }}的 V{{ sub.version }}</h1>
+<p>{{ sub.assignment.teaching_class }} · 学号 {{ sub.student.username }} · 整版收件 {{ sub.received_at|date:"Y-m-d H:i" }}</p>
+{% if newer %}<p role="status">该生已重交。当前批阅仍绑定 V{{ sub.version }}。</p>{% endif %}
+{% if keys %}<form method="get"><label>本次批阅使用的答案修订 <select name="key">{% for rev in keys %}<option value="{{ rev.pk }}" {% if key.pk == rev.pk %}selected{% endif %}>{{ rev.paper.code }} 第 {{ rev.paper.version }} 版 · 答案 R{{ rev.seq }}</option>{% endfor %}</select></label><button>切换并核对题号</button></form>{% endif %}
+<form method="post">{% csrf_token %}
+<input type="hidden" name="version" value="{{ draft.edit_version|default:0 }}"><input type="hidden" name="key_id" value="{{ key.pk|default:'' }}">
+{% include 'grading/annotation_editor.html' %}
+<h2>判定与评分</h2>
+{% if key %}<p>试卷 {{ key.paper.code }} 第 {{ key.paper.version }} 版 · 答案草稿 R{{ key.seq }}</p>
+{% for row in judgments %}<fieldset><legend>第 {{ row.question.number }} 题 · {{ row.question.prompt }}</legend>
+<label>判定 <select name="verdict_{{ row.question.pk }}"><option value="">待确认</option><option value="correct" {% if row.old.verdict == "correct" %}selected{% endif %}>正确</option><option value="wrong" {% if row.old.verdict == "wrong" %}selected{% endif %}>错题</option></select></label>
+<label>作答附件 <select name="attachment_{{ row.question.pk }}">{% for f in attachment_list %}<option value="{{ f.id }}" {% if f.id == row.old.attachment_id %}selected{% endif %}>{{ f.name }}</option>{% endfor %}</select></label>
+<label>作答页 <input type="number" min="1" name="page_{{ row.question.pk }}" value="{{ row.old.page|default:1 }}"></label>
+<label>错因 <input maxlength="400" name="reason_{{ row.question.pk }}" value="{{ row.old.reason }}"></label></fieldset>{% endfor %}
+{% else %}<p>要登记逐题判断，请先<a href="{% url 'grading:teacher_answers' sub.assignment_id %}">准备试卷及答案</a>。</p>{% endif %}
+<label>整版得分（满分 {{ sub.assignment.max_points }}）<input name="score" type="number" min="0" max="{{ sub.assignment.max_points }}" step=".01" required value="{{ draft.score|default_if_none:'' }}"></label>
+<label>个人评语 <textarea name="feedback" maxlength="2000">{{ draft.feedback }}</textarea></label>
+<p>分数在发布成绩后可见，评语、页上批注及错题将在本班公布对应答案后显示。</p>
+<button>保存批阅草稿</button></form>
+{% if draft %}<p role="status">已保存草稿 R{{ draft.edit_version }} · <a href="{% url 'grading:publish' sub.assignment_id %}">预览成绩发布名单</a></p>{% endif %}
+{% if snapshots %}<section><h2>此版本的已发布记录</h2><ul>{% for g in snapshots %}<li><a href="{% url 'grading:teacher_grade' g.pk %}">发布批次 {{ g.release_id }} · {{ g.score }}/{{ g.max_points }} · {{ g.release.at|date:"m-d H:i" }}</a></li>{% endfor %}</ul></section>{% endif %}
+{% endblock %}

@@ -1,0 +1,3 @@
+{% extends "base.html" %}{% block title %}我的成绩{% endblock %}{% block content %}<p>个人学习记录</p><h1>我的成绩</h1>
+{% for g in grades %}<section><p>{{ g.release.assignment.teaching_class }}</p><h2><a href="{% url 'grading:grade_detail' g.pk %}">{{ g.release.assignment.title }}</a></h2><p>{{ g.score|floatformat:2 }}/{{ g.max_points }} · 批阅版本 V{{ g.submission.version }} · 已公布</p></section>{% empty %}<p>暂无已公布成绩。</p>{% endfor %}
+<p><a href="{% url 'grading:mistakes' %}">我的错题</a></p>{% endblock %}

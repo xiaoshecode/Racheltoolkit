@@ -1,0 +1,14 @@
+name: Deployment rehearsal
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Boot production configuration and exercise HTTPS on the isolated runner
+        working-directory: deploy
+        run: bash rehearse_https.sh
+
