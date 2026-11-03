@@ -12,6 +12,16 @@ MAX_PDF = 32 * 1024 * 1024
 def convert_office(data, suffix):
     if suffix not in (".doc", ".docx", ".ppt", ".pptx"):
         raise ValueError("Unsupported Office format.")
+    pdf = run_renderer(data, suffix)
+    if not pdf.startswith(b"%PDF-"):
+        raise ValueError("Renderer did not return a PDF.")
+    return pdf
+
+
+def run_renderer(data, mode):
+    """Run one conversion; the special fixture export mode is used only by Linux CI."""
+    if mode not in (".doc", ".docx", ".ppt", ".pptx", "fixture-doc"):
+        raise ValueError("Unknown renderer mode.")
     image = os.getenv("TEACH_OFFICE_IMAGE")
     if not image or image.startswith("-"):
         raise RuntimeError("No approved Office renderer configured.")
@@ -20,7 +30,7 @@ def convert_office(data, suffix):
         "docker", "run", "--pull=never", "--rm", "--name", name, "--network=none", "--read-only",
         "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=65534:65534", "--cpus=1",
         "--memory=768m", "--memory-swap=768m", "--pids-limit=64", "--ulimit=fsize=33554432:33554432",
-        "--tmpfs=/tmp:rw,nosuid,nodev,noexec,size=128m,mode=1777", "-i", image, suffix,
+        "--tmpfs=/tmp:rw,nosuid,nodev,noexec,size=128m,mode=1777", "-i", image, mode,
     ]
     with TemporaryFile(dir=settings.RUNTIME) as output:
         try:
@@ -34,7 +44,4 @@ def convert_office(data, suffix):
         if result.returncode or not 0 < output.tell() <= MAX_PDF:
             raise RuntimeError("Office rendering failed.")
         output.seek(0)
-        pdf = output.read(MAX_PDF + 1)
-    if not pdf.startswith(b"%PDF-"):
-        raise ValueError("Renderer did not return a PDF.")
-    return pdf
+        return output.read(MAX_PDF + 1)

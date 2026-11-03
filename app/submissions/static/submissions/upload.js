@@ -1,9 +1,40 @@
 const form = document.querySelector('#submission-form');
 const queue = document.querySelector('#queue'), message = document.querySelector('#receipt-status');
 const owner = document.querySelector('#owner');
-let items = [], key = newKey(), busy = false;
+const fresh = document.querySelector('#fresh-version');
+let items = [], key = newKey(), busy = false, submitted = false;
 function newKey() { return crypto.randomUUID(); }
-function resetRequest() { key = newKey(); message.textContent = ''; }
+function cacheName() {
+  return ['teaching-intake',form.dataset.actor,form.dataset.work,owner?.value || 'self'].join(':');
+}
+function remember(value) {
+  try {
+    if (value) sessionStorage.setItem(cacheName(),value);
+    else sessionStorage.removeItem(cacheName());
+  } catch { /* within-page retries still use the active key */ }
+}
+function resetRequest() {
+  if (!submitted) key = newKey();
+  message.textContent = submitted ? '正在重试原版。如需更换清单，请先另起一版。' : '';
+}
+async function recover() {
+  let saved=null;
+  try { saved=sessionStorage.getItem(cacheName()); } catch { }
+  key=saved || newKey(); submitted=!!saved; fresh.hidden=!submitted;
+  if (!saved) { message.textContent=''; return; }
+  message.textContent='正在核对上次提交…';
+  const route=owner ? '/teacher/assignments/'+form.dataset.work+'/students/'+owner.value : '/assignments/'+form.dataset.work;
+  try {
+    const res=await fetch(route+'/submission-status/?key='+encodeURIComponent(saved),{cache:'no-store'});
+    if (key!==saved) return;
+    if(res.status===200 && !res.redirected){
+      const data=await res.json();
+      if(data.receipt){remember(null);location.assign(data.url);return;}
+    }
+    message.textContent='上次提交尚未确认。重新选取相同文件并按原页序提交，或另起一版。';
+  } catch { if(key===saved)message.textContent='暂时无法查询回执。可使用原文件、原页序重试。'; }
+}
+fresh.onclick=()=>{remember(null);submitted=false;fresh.hidden=true;resetRequest();};
 function redraw() {
   queue.replaceChildren();
   items.forEach((item, i) => {
@@ -31,7 +62,8 @@ for (const id of ['files','camera']) {
     e.target.value=''; resetRequest(); redraw();
   });
 }
-if(owner) owner.addEventListener('change',resetRequest);
+if(owner) owner.addEventListener('change',recover);
+recover();
 form.elements.note?.addEventListener('input',resetRequest);
 form.addEventListener('submit',async e=>{
   e.preventDefault(); if(busy)return;
@@ -39,13 +71,14 @@ form.addEventListener('submit',async e=>{
   const url=owner ? '/teacher/assignments/'+form.dataset.work+'/students/'+owner.value+'/submissions/' : form.action;
   const data=new FormData(form); for(const item of items)data.append('files',item.file);
   data.set('key',key);
+  submitted=true; remember(key); fresh.hidden=false;
   message.textContent='正在核验整版文件…'; busy=true;
   const controls=[...form.elements]; controls.forEach(el=>el.disabled=true); redraw();
   let received=false;
   try {
     const response=await fetch(url,{method:'POST',body:data,credentials:'same-origin'});
     const result=await response.json();
-    if(result.receipt) {received=true; location.assign(result.url);}
+    if(result.receipt) {received=true; remember(null); location.assign(result.url);}
     else message.textContent=result.error || '尚未收到成功回执。请保留文件并再次提交，系统会核对同一个版本。';
   } catch {message.textContent='网络未确认收件。请保留文件再次提交，复用本次提交编号。';}
   finally {if(!received){busy=false;controls.forEach(el=>el.disabled=false);redraw();}}

@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
-case "$1" in .doc|.docx|.ppt|.pptx) ;; *) exit 4 ;; esac
+case "$1" in
+  .doc|.docx|.ppt|.pptx) suffix="$1"; filter=pdf; output=pdf ;;
+  fixture-doc) suffix=.docx; filter="doc:MS Word 97"; output=doc ;;
+  *) exit 4 ;;
+esac
 umask 077
 mkdir -p "$HOME/profile/user" /tmp/out
 cat > "$HOME/profile/user/registrymodifications.xcu" <<'XML'
@@ -13,8 +17,8 @@ cat > "$HOME/profile/user/registrymodifications.xcu" <<'XML'
   </item>
 </oor:items>
 XML
-cat > "/tmp/source$1"
+cat > "/tmp/source$suffix"
 soffice -env:UserInstallation=file:///tmp/home/profile --headless --nologo --norestore --nodefault \
-    --convert-to pdf --outdir /tmp/out "/tmp/source$1" >/dev/null 2>&1
-test -s /tmp/out/source.pdf
-cat /tmp/out/source.pdf
+    --convert-to "$filter" --outdir /tmp/out "/tmp/source$suffix" >/dev/null 2>&1
+test -s "/tmp/out/source.$output"
+cat "/tmp/out/source.$output"

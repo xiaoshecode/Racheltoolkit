@@ -9,6 +9,7 @@ urlpatterns = [
     path("assignments/<int:pk>/submissions/",views.upload),
     path("teacher/assignments/<int:pk>/students/<int:student_id>/submissions/",views.upload),
     path("assignments/<int:pk>/submission-status/",views.status),
+    path("teacher/assignments/<int:pk>/students/<int:student_id>/submission-status/",views.status),
     path("submissions/<uuid:pk>/",views.receipt),
     path("submissions/<uuid:pk>/download/",views.attachment),
     path("submissions/<uuid:pk>/attachments/<uuid:aid>/download/",views.attachment),

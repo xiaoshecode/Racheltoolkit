@@ -3,6 +3,7 @@ from uuid import uuid4
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.db import OperationalError
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -111,13 +112,22 @@ def upload(request,pk,student_id=None):
                                       request.POST.get("key",""),items)
     except Refused as e:
         return JsonResponse({"error":str(e)},status=e.status)
+    except OperationalError as e:
+        if "locked" not in str(e).lower():
+            raise
+        retry = JsonResponse({"error":"收件繁忙，请保留本次编号并重试。"},status=503)
+        retry["Retry-After"] = "2"
+        return retry
     return JsonResponse(output(sub),status=status)
 
 @login_required
-def status(request,pk):
+def status(request,pk,student_id=None):
     work = get_object_or_404(visible(request.user),pk=pk)
-    sub = get_object_or_404(Submission,assignment=work,student=request.user,retry_key=request.GET.get("key",""))
-    return JsonResponse(output(sub),status=200 if sub.state=="confirmed" else 202)
+    student = request.user if student_id is None else get_object_or_404(get_user_model(),pk=student_id)
+    services.authorize(work, student, request.user, student_id is not None)
+    sub = get_object_or_404(Submission,assignment=work,student=student,retry_key=request.GET.get("key",""))
+    code = 200 if sub.state=="confirmed" else (409 if sub.state=="quarantined" else 202)
+    return JsonResponse(output(sub),status=code)
 
 @login_required
 def receipt(request,pk):
