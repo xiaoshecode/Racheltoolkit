@@ -1,8 +1,11 @@
 import hashlib
+import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.error import HTTPError
 
@@ -104,23 +107,25 @@ class StorageTests(TestCase):
 
 class CloudContractTests(SimpleTestCase):
     def setUp(self):
-        self.store = SeafileBackend("https://example.org", "fake-test-token")
+        self.store = SeafileBackend("https://example.org", "fake-test-token", "approved")
         self.path = "/学生作业/" + "e" * 32 + ".pdf"
 
     def test_token_only_sent_to_api(self):
         filename = self.path.split("/")[-1]
         link = "https://example.org/seafhttp/download/signed"
-        responses = [json.dumps({"dirent_list": [{"name": filename}]}).encode(),
+        responses = [b'{"repo_id":"approved"}', json.dumps({"dirent_list": [{"name": filename}]}).encode(),
                      json.dumps(link).encode(), b"hello"]
         with patch.object(self.store.opener, "open", side_effect=[io.BytesIO(r) for r in responses]) as opened:
             with self.store.open(self.path) as response:
                 self.assertEqual(response.read(), b"hello")
         requests = [call.args[0] for call in opened.call_args_list]
+        self.assertEqual(requests[0].full_url, "https://example.org/api/v2.1/via-repo-token/repo-info/")
         self.assertEqual(requests[0].get_header("Authorization"), "Bearer fake-test-token")
         self.assertIsNone(requests[-1].get_header("Authorization"))
 
     def test_empty_dir_and_404_distinct(self):
-        with patch.object(self.store.opener, "open", return_value=io.BytesIO(b'{"dirent_list":[]}')):
+        with patch.object(self.store.opener, "open", side_effect=[
+                io.BytesIO(b'{"repo_id":"approved"}'), io.BytesIO(b'{"dirent_list":[]}')]):
             self.assertIsNone(self.store.open(self.path))
         exc = HTTPError("https://fake/sensitive", 404, "sensitive", {}, io.BytesIO())
         with patch.object(self.store.opener, "open", side_effect=exc):
@@ -128,6 +133,7 @@ class CloudContractTests(SimpleTestCase):
                 self.store.open(self.path)
 
     def test_rejects_untrusted_service_and_redirects(self):
+        self.store.verified = True
         for url in ("http://example.org/leak", "https://foreign.org/secret",
                     "https://example.org@foreign.org/download"):
             with self.subTest(url=url), patch.object(self.store, "api", return_value=url):
@@ -137,6 +143,7 @@ class CloudContractTests(SimpleTestCase):
         self.assertIsNone(NoRedirect().redirect_request(None, None, 302, None, None, "https://foreign.org"))
 
     def test_upload_renamed_or_disconnected_is_uncertain(self):
+        self.store.verified = True
         with patch.object(self.store, "link", return_value="https://example.org/upload-token"):
             for attempt in (io.BytesIO(b'[{"name":"auto-renamed (1).pdf"}]'), TimeoutError()):
                 with self.subTest(attempt=type(attempt)), patch.object(
@@ -146,3 +153,32 @@ class CloudContractTests(SimpleTestCase):
                     req = opened.call_args.args[0]
                     self.assertNotIn("Authorization", req.headers)
                     self.assertIn(b'name="replace"\r\n\r\n0', req.data)
+
+    def test_wrong_repo_never_lists_downloads_or_writes(self):
+        for op in (lambda: self.store.open(self.path), lambda: self.store.put(self.path, b"secret bytes")):
+            with patch.object(self.store.opener, "open", return_value=io.BytesIO(b'{"repo_id":"another"}')) as call:
+                with self.assertRaisesRegex(StorageUnavailable, "configured library"):
+                    op()
+                self.assertEqual(call.call_count, 1)
+                req = call.call_args.args[0]
+                self.assertTrue(req.full_url.endswith("/repo-info/"))
+                self.assertEqual(req.get_method(), "GET")
+                self.assertIsNone(req.data)
+
+    def test_deployment_probe_validates_identity_before_access(self):
+        spec = importlib.util.spec_from_file_location("probe", settings.BASE_DIR / "deploy" / "verify_seafile.py")
+        probe = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(probe)
+        args = SimpleNamespace(directory="/接口测试", roundtrip=True, legacy_token=False, transfer_origin=[])
+        env = {"SEAFILE_BASE_URL": "https://test.invalid", "SEAFILE_REPO_TOKEN": "fixture",
+               "SEAFILE_LIBRARY_ID": "approved"}
+        with patch.dict(os.environ, env), patch.object(probe, "request", return_value=b'{"repo_id":"other"}') as request:
+            with self.assertRaisesRegex(probe.ProbeError, "configured library"):
+                probe.run(args)
+            self.assertEqual(request.call_count, 1)
+            self.assertTrue(request.call_args.args[1].endswith("/repo-info/"))
+            self.assertEqual(request.call_args.kwargs["method"], "GET")
+            args.directory = "/学生作业"
+            with self.assertRaisesRegex(probe.ProbeError, "limited"):
+                probe.run(args)
+            self.assertEqual(request.call_count, 1)

@@ -1,6 +1,19 @@
 # 吉老师个人教学空间
 
-Django 提供教学站，SQLite 保存教学记录。仓库根目录运行以下 PowerShell 命令，使用 Python 3.13。所有虚拟环境、下载缓存与本地数据库均位于项目内。
+[公开课程入口](https://xiaoshecode.github.io/Racheltoolkit/)使用 GitHub Pages。登录、课程发布、整版回执、教师批阅、标准答案和个人错题由 Django 教学站提供。SQLite 保存业务记录，生产文件使用服务器代理访问私有 Seafile 资料库。
+
+## 本机验收
+
+在 Windows 仓库根目录执行 `pwsh -NoProfile -File scripts/start-review.ps1`，打开 [本机教学空间](http://127.0.0.1:8765/)。脚本使用隔离的虚构班级和项目内的 Python 环境。吉老师、甲、乙的随机体验密码在本机 `.local/review/access.txt` 中。
+
+- 访客从课程目录进入「基础数学 · 函数与图像」，查看第一章的两页讲义。
+- 甲登录后在「课后练习」逐页选图、调序并提交，打开整版回执。主动再交 PDF 时会得到新版本。个人空间中已有一份已发布批阅，可以从错题回到第 2 页。
+- 乙进入同一章能读相同讲义，也能读已截止作业的班级标准答案。甲的回执和批阅地址对乙返回 404。
+- 教师从课程编辑和成绩册布置作业、查未交名单、代交、按版本批阅、发布成绩。到截止时，从作业的「管理标准答案」手动公布本班答案。
+
+## 从干净环境启动
+
+仓库根目录运行以下 PowerShell 命令，使用 Python 3.13。
 
 ```powershell
 New-Item -ItemType Directory -Force .local/tmp | Out-Null
@@ -19,4 +32,8 @@ python -m venv .venv
 ```
 
 健康检查地址为 `/health/`。开发库默认位于 `.local/school.sqlite3`。需要验证空库迁移时，在运行迁移前将 `TEACH_DB` 指向项目内一个尚不存在的 SQLite 文件；自动化测试另建文件型测试库，结束后由测试运行器清理。测试使用虚构学生和班级。
+
+## 部署
+
+生产镜像、HTTPS 代理、云盘探测、备份和兼容版本回退见 [教学站部署手册](deploy/README.md)。Pages 使用仓库变量 `TEACH_ORIGIN` 接入已验证的教学主机。当前站点是否开放真实教学，以项目验收台账的 M7c 和 M8 记录为准。
 

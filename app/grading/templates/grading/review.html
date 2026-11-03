@@ -1,5 +1,5 @@
-{% extends "base.html" %}{% block title %}批阅 · {{ sub.student.first_name }} V{{ sub.version }}{% endblock %}
-{% block content %}<p><a href="/assignments/{{ sub.assignment_id }}/">返回{{ sub.assignment.title }}</a></p>
+{% extends "grading/base.html" %}{% block title %}批阅 · {{ sub.student.first_name }} V{{ sub.version }}{% endblock %}
+{% block sheet %}<p><a href="/assignments/{{ sub.assignment_id }}/">返回{{ sub.assignment.title }}</a></p>
 <h1>批阅 {{ sub.student.first_name|default:sub.student.username }}的 V{{ sub.version }}</h1>
 <p>{{ sub.assignment.teaching_class }} · 学号 {{ sub.student.username }} · 整版收件 {{ sub.received_at|date:"Y-m-d H:i" }}</p>
 {% if newer %}<p role="status">该生已重交。当前批阅仍绑定 V{{ sub.version }}。</p>{% endif %}

@@ -37,6 +37,12 @@ async function recover() {
 fresh.onclick=()=>{remember(null);submitted=false;fresh.hidden=true;resetRequest();};
 function redraw() {
   queue.replaceChildren();
+  if (owner) {
+    const option = owner.selectedOptions[0];
+    document.querySelector('#proxy-target').textContent = owner.value
+      ? option.textContent+' · '+form.dataset.title+' · 上次成功 V'+option.dataset.latest+'，本次代交 '+items.length+' 个附件。版本以整版回执为准。'
+      : '请先选择所属学生。';
+  }
   items.forEach((item, i) => {
     const row = document.createElement('li');
     if (item.url) {
@@ -62,7 +68,13 @@ for (const id of ['files','camera']) {
     e.target.value=''; resetRequest(); redraw();
   });
 }
-if(owner) owner.addEventListener('change',recover);
+if(owner) owner.addEventListener('change',()=>{
+  for (const item of items) if (item.url) URL.revokeObjectURL(item.url);
+  items=[];
+  form.elements.note.value='';
+  redraw();
+  recover();
+});
 recover();
 form.elements.note?.addEventListener('input',resetRequest);
 form.addEventListener('submit',async e=>{

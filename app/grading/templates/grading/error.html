@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block title %}请核对本次操作{% endblock %}{% block content %}
+{% extends "grading/base.html" %}{% block title %}请核对本次操作{% endblock %}{% block sheet %}
 <h1>本次操作未保存</h1><p role="alert">{{ error }}</p>
 {% if submitted %}<details><summary>查看本次输入</summary><p>可以复制这些内容，再打开当前版本核对。附件需要重新选择。</p>
 <dl>{% for key,value in submitted %}<dt>{{ key }}</dt><dd style="overflow-wrap:anywhere">{{ value|linebreaksbr }}</dd>{% endfor %}</dl></details>{% endif %}

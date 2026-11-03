@@ -1,5 +1,7 @@
-{% extends "base.html" %}{% block title %}课程目录 · 吉老师个人教学空间{% endblock %}
-{% block content %}<p class="eyebrow">共享教学资料</p><h1>课程与讲义</h1><p>从课程目录找到章节、讲义和课堂课件。</p>
-{% if can_edit %}<p><a href="{% url 'catalog_teacher_courses' %}">编辑我的课程</a></p>{% endif %}
-{% if is_teacher %}<p><a href="/dashboard/">班级成绩册</a></p>{% endif %}
-{% for item in publications %}<article class="panel"><h2><a href="{% url 'catalog_course' item.course_id %}">{{ item.revision.title }}</a></h2><p>{{ item.revision.intro }}</p><small>发布于 {{ item.revision.published_at|date:"Y-m-d H:i" }} · {{ item.revision.sections.all|length }} 章</small></article>{% empty %}<p class="notice">尚无已发布课程。</p>{% endfor %}{% endblock %}
+{% extends "base.html" %}{% load static %}{% block title %}课程目录 · 吉老师个人教学空间{% endblock %}{% block head %}<link rel="stylesheet" href="{% static 'catalog/catalog.css' %}">{% endblock %}
+{% block content %}<div class="catalog-head"><div><p class="eyebrow">吉老师 · 公开教学资料</p><h1>课程与讲义</h1><p>按章阅读讲义，下载课堂课件。课程和章节都可以收藏，老师更新资料后仍可从原链接进入。</p></div><aside><span>课程手记</span><div>章节目录<br>课堂资料</div></aside></div>
+{% if can_edit or is_teacher %}<nav aria-label="教师工作区" class="catalog-teacher">{% if can_edit %}<a href="{% url 'catalog_teacher_courses' %}">编辑我的课程</a>{% endif %}{% if is_teacher %}<a href="/dashboard/">班级成绩册</a>{% endif %}</nav>{% endif %}
+{% include "catalog/filter.html" %}
+<div class="catalog-heading"><h2>{% if searching %}查找结果{% else %}已发布课程{% endif %}</h2><span>{{ publications|length }} 门课程</span></div>
+{% for item,chapters in publications %}<article class="catalog-entry"><div class="catalog-number">{{ forloop.counter|stringformat:"02d" }}</div><div><h3><a href="{% url 'catalog_course' item.course_id %}{% if searching %}?{{ querystring }}{% endif %}">{{ item.revision.title }}</a></h3><p>{{ item.revision.intro }}</p><small>发布于 {{ item.revision.published_at|date:"Y-m-d H:i" }} · {% if searching %}匹配 {% endif %}{{ chapters|length }} 章</small>
+<ul>{% for chapter, files in chapters %}<li><a href="{% url 'catalog_chapter' item.course_id chapter.stable_key %}{% if searching %}?{{ querystring }}{% endif %}">{{ chapter.title }}</a> · {{ files|length }} 份资料</li>{% endfor %}</ul></div></article>{% empty %}<p class="notice">{% if searching %}没有符合条件的已发布资料。<a href="{{ request.path }}">查看全部课程</a>{% else %}尚无已发布课程。{% endif %}</p>{% endfor %}{% endblock %}

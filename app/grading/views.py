@@ -6,14 +6,15 @@ from uuid import uuid4
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from school.permissions import teacher_classes
+from school.permissions import student_classes, teacher_classes
 from storage.backends import StorageError
 from storage.preview_views import preview_file, preview_status
 from storage.previews import pdf_manifest
 from storage.services import ensure_written, file_response, reserve
-from submissions.models import Submission
+from submissions.models import Assignment, Submission
 from .models import GradeDraft, ReleasedGrade
 from .services import (
     Conflict,
@@ -298,10 +299,25 @@ def answer_file(request, pk, revision, action, teacher=False):
 @login_required
 @require_GET
 def grades(request):
+    tasks = (
+        Assignment.objects.filter(
+            teaching_class__in=student_classes(request.user), published_at__lte=timezone.now()
+        )
+        .select_related("teaching_class__term", "teaching_class__course")
+        .order_by("-due_at", "-pk")
+    )
+    receipts = {}
+    for sub in (
+        Submission.objects.filter(assignment__in=tasks, student=request.user, state="confirmed")
+        .order_by("-version")
+        .only("assignment_id", "version")
+    ):
+        receipts.setdefault(sub.assignment_id, sub)
     latest = {}
     for grade in personal_grades(request.user):
         latest.setdefault(grade.release.assignment_id, grade)
-    return render(request, "grading/grades.html", {"grades": list(latest.values())})
+    rows = [{"task": task, "grade": latest.get(task.pk), "receipt": receipts.get(task.pk)} for task in tasks]
+    return render(request, "grading/grades.html", {"rows": rows})
 
 
 @login_required
@@ -309,7 +325,8 @@ def grades(request):
 def grade_detail(request, pk, teacher=False):
     grades = (
         ReleasedGrade.objects.filter(release__assignment__teaching_class__in=teacher_classes(request.user))
-        if teacher else personal_grades(request.user)
+        if teacher
+        else personal_grades(request.user)
     )
     grade = get_object_or_404(grades, pk=pk)
     visible = teacher or solution_visible(grade)

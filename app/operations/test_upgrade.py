@@ -7,6 +7,7 @@ import tempfile
 from django.conf import settings
 from django.test import SimpleTestCase
 
+
 class UpgradeTests(SimpleTestCase):
     def test_legacy_file_becomes_first_page_with_unchanged_receipt_and_grade_reference(self):
         script = """
@@ -49,10 +50,20 @@ with connection.cursor() as c:
 print("PASS V4 original receipt, sole attachment position 1, unknown actor, historical zero score retained")
 """
         with tempfile.TemporaryDirectory(dir=settings.RUNTIME) as tmp:
-            env=dict(os.environ,TEACH_DB=str(Path(tmp)/"old.sqlite3"),TEACH_DATA_DIR=tmp,PYTHONIOENCODING="utf-8",
-                     DJANGO_SETTINGS_MODULE="config.settings")
-            result=subprocess.run([sys.executable,str(settings.BASE_DIR/"app/manage.py"),"shell","-c",script],
-                                  capture_output=True,text=True,encoding="utf-8",env=env,timeout=40)
-            self.assertEqual(result.returncode,0,result.stderr)
-            self.assertIn("PASS V4",result.stdout)
-
+            env = dict(
+                os.environ,
+                TEACH_DB=str(Path(tmp) / "old.sqlite3"),
+                TEACH_DATA_DIR=tmp,
+                PYTHONIOENCODING="utf-8",
+                DJANGO_SETTINGS_MODULE="config.settings",
+            )
+            result = subprocess.run(
+                [sys.executable, str(settings.BASE_DIR / "app/manage.py"), "shell", "-c", script],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                env=env,
+                timeout=40,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("PASS V4", result.stdout)

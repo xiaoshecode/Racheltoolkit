@@ -8,8 +8,10 @@ from django.core.management.base import BaseCommand, CommandError
 from storage.backends import validate_path
 from .snapshot_teaching import digest, inventory
 
+
 class Command(BaseCommand):
     help = "Validate a private snapshot and materialize an isolated local teaching data directory."
+
     def add_arguments(self, parser):
         parser.add_argument("snapshot", type=Path)
         parser.add_argument("destination", type=Path)
@@ -17,9 +19,15 @@ class Command(BaseCommand):
     def handle(self, snapshot, destination, **options):
         start = snapshot.resolve()
         target = destination.resolve()
-        if (target.exists() or target.is_relative_to(start) or
-                target.is_relative_to(settings.RUNTIME.resolve()) or not target.parent.is_dir()):
-            raise CommandError("Restore only into a NEW isolated directory outside the live data and backup")
+        if (
+            target.exists()
+            or target.is_relative_to(start)
+            or target.is_relative_to(settings.RUNTIME.resolve())
+            or not target.parent.is_dir()
+        ):
+            raise CommandError(
+                "Restore only into a NEW isolated directory outside the live data and backup"
+            )
         db = start / "school.sqlite3"
         manifest = json.loads((start / "manifest.json").read_text(encoding="utf-8"))
         if digest(db) != manifest["database_sha256"]:
@@ -28,7 +36,7 @@ class Command(BaseCommand):
         libraries = {row["library_id"] for row in rows}
         if len(libraries) > 1:
             raise CommandError("This installation requires a single private teaching library")
-        if rows != [{k:v for k,v in row.items() if k != "copied"} for row in manifest["objects"]]:
+        if rows != [{k: v for k, v in row.items() if k != "copied"} for row in manifest["objects"]]:
             raise CommandError("Manifest is inconsistent with database inventory")
         with tempfile.TemporaryDirectory(prefix=".restore-", dir=target.parent) as tmp:
             restored = Path(tmp) / "restored"
@@ -53,4 +61,3 @@ class Command(BaseCommand):
                 count += 1
             restored.rename(target)
         self.stdout.write(f"Isolated restore complete: indexed={len(rows)} verified={count}")
-

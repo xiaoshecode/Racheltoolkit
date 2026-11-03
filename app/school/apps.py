@@ -6,4 +6,4 @@ class SchoolConfig(AppConfig):
     verbose_name = "教学关系"
 
     def ready(self):
-        from . import signals  # Register account deactivation handling.
+        from . import signals  # noqa: F401 - registers account deactivation handling

@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% block title %}编辑课程 · {{ rev.title }}{% endblock %}
 {% block content %}<p class="eyebrow">教师工作区 / <a href="{% url 'catalog_teacher_courses' %}">课程编辑</a></p>
 <h1>{{ rev.title }}</h1><p>当前草稿版本 {{ rev.edit_version }}。每次保存后可预览整门课程。</p>
-<p class="actions"><a href="{% url 'catalog_preview' rev.course_id %}">预览草稿</a><a href="{% url 'catalog_course' rev.course_id %}">查看公开课程</a></p>
+<p class="actions"><a href="{% url 'catalog_preview' rev.course_id %}">预览草稿</a>{% if rev.course.publication %}<a href="{% url 'catalog_course' rev.course_id %}">查看已发布课程</a>{% else %}<small>首次发布后将生成公开课程入口。</small>{% endif %}</p>
 {% if error %}<div class="notice" role="alert">{{ error }}{% if submitted.title or submitted.body or submitted.intro %}<details open><summary>刚才提交的内容</summary><p>{{ submitted.title }}</p><p>{{ submitted.body|linebreaksbr }}{{ submitted.intro|linebreaksbr }}</p></details>{% endif %}</div>{% endif %}
 <form class="panel" method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><h2>课程介绍</h2>
 <p><label>课程名称<input name="title" value="{{ rev.title }}" maxlength="160" required></label></p>

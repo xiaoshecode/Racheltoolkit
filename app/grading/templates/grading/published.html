@@ -1,3 +1,3 @@
-{% extends "base.html" %}{% block title %}成绩已发布{% endblock %}{% block content %}<h1>成绩已发布</h1>
+{% extends "grading/base.html" %}{% block title %}成绩已发布{% endblock %}{% block sheet %}<h1>成绩已发布</h1>
 <p>{{ task.teaching_class }} · {{ task.title }} · 发布批次 {{ batch.pk }}，共 {{ batch.grades.count }} 人。</p>
 <a href="{% url 'grading:publish' task.pk %}">返回成绩发布名单</a>{% endblock %}

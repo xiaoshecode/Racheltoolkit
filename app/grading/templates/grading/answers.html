@@ -1,6 +1,6 @@
-{% extends "base.html" %}{% block title %}本班标准答案{% endblock %}{% block content %}
+{% extends "grading/base.html" %}{% block title %}本班标准答案{% endblock %}{% block sheet %}
 <p><a href="/assignments/{{ task.pk }}/">{{ task.teaching_class }} · {{ task.title }}</a></p><h1>本班标准答案</h1>
-{% if release %}<p>{{ release.revision.paper.code }} 第 {{ release.revision.paper.version }} 版 · 答案 R{{ release.revision.seq }} · {{ release.released_at|date:"m-d H:i" }} 公布</p>
-{% for e in entries %}<section><h2>第 {{ e.answer.question.number }} 题</h2><p>{{ e.answer.question.prompt }}</p><p>{{ e.answer.text|linebreaksbr }}</p></section>{% endfor %}
-{% if release.revision.file_id %}<p><a href="{{ release.revision_id }}/preview/">预览答案 PDF</a> · <a href="{{ release.revision_id }}/download/">下载答案 PDF</a></p>{% endif %}
-{% else %}<p>待教师公布。截止后，吉老师发布的答案将在这里显示。</p>{% endif %}{% endblock %}
+{% if release %}<p class="record-meta"><span class="state">已公布</span>{{ release.revision.paper.code }} 第 {{ release.revision.paper.version }} 版 · 答案 R{{ release.revision.seq }} · {{ release.released_at|date:"m-d H:i" }}</p>
+{% for e in entries %}<section><h2>第 {{ e.answer.question.number }} 题</h2><p>{{ e.answer.question.prompt }}</p><p class="answer"><strong>标准答案</strong><br>{{ e.answer.text|linebreaksbr }}</p></section>{% endfor %}
+{% if release.revision.file_id %}<p class="task-links"><a href="{{ release.revision_id }}/preview/">预览答案 PDF</a><a href="{{ release.revision_id }}/download/">下载答案 PDF</a></p>{% endif %}
+{% else %}<p class="pending-notice">待教师公布。截止后，吉老师发布的答案将在这里显示。</p>{% endif %}{% endblock %}

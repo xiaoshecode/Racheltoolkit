@@ -67,7 +67,7 @@ def bounded_text(value, maximum, *, required=True):
 
 def whole(value, minimum=1):
     if (
-        type(value) is bool
+        type(value) not in (int, str)
         or not str(value).isascii()
         or not str(value).isdigit()
         or len(str(value)) > 9
@@ -205,7 +205,12 @@ def validate_layers(submission, key, annotations, judgments):
             )
             if k in row
         }
-        mark.update(page=geometry["page"], width=geometry["width"], height=geometry["height"], rotation=geometry["rotation"])
+        mark.update(
+            page=geometry["page"],
+            width=geometry["width"],
+            height=geometry["height"],
+            rotation=geometry["rotation"],
+        )
         if row.get("type") == "text":
             mark["text"] = bounded_text(row.get("text"), 500)
         elif row.get("type") == "ink":

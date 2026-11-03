@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block title %}我的错题{% endblock %}{% block content %}<p>个人学习记录</p><h1>我的错题</h1>
+{% extends "grading/base.html" %}{% block title %}我的错题{% endblock %}{% block sheet %}<p>个人学习记录</p><h1>我的错题</h1>
 <form method="get"><label>课程、试卷、题号或知识点 <input name="q" value="{{ q }}"></label><label>复习状态 <select name="state"><option value="">全部</option><option value="0" {% if request.GET.state == "0" %}selected{% endif %}>待复习</option><option value="1" {% if request.GET.state == "1" %}selected{% endif %}>已复习</option></select></label><button>筛选</button></form>
 {% for c in cards %}<section><p>{{ c.assignment.teaching_class.course.title }} · {{ c.question.paper.code }} 第 {{ c.question.paper.version }} 版</p>
 <h2>第 {{ c.question.number }} 题 · {{ c.question.topic }}</h2><p>{{ c.question.prompt }}</p><p>错因 · {{ c.reason }}</p>

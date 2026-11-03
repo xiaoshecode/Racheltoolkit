@@ -1,0 +1,33 @@
+.grade-work { max-width: 66rem; margin-inline:auto; color:#24433e; }
+.grade-work > h1 { font-family: "Songti SC","SimSun",serif; letter-spacing:-.02em; margin-block:.35rem 1.1rem; }
+.grade-work > p:first-child { color:#506761; font-size:.9rem; margin-block:0 1rem; }
+.grade-work > p:first-child a { display:inline-block; text-decoration-thickness:1px; }
+.grade-work > section:not(.annotation) { border-top:1px solid #ccd9cf; padding-block:.8rem 1.25rem; }
+.grade-work .record-meta { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem .9rem; color:#526660; font-size:.9rem; }
+.grade-work .state { display:inline-block; padding:.15rem .65rem; border-radius:1rem; background:#e3efe7; color:#204b40; font-size:.875rem; font-weight:650; }
+.grade-work .score-banner { background:#173e3a; color:#fff; border-radius:.35rem; padding:.8rem 1.2rem; display:flex; align-items:baseline; gap:.5rem; flex-wrap:wrap; }
+.grade-work .score-banner b { font-size:1.9rem; line-height:1.25; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.grade-work .score-banner span { color:#d9e8df; }
+.grade-work .answer { margin:.75rem 0 0; border-inline-start:3px solid #33705a; padding:.55rem 1rem; background:#edf3ec; }
+.grade-work .task-links { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem 1rem; }
+.grade-work .task-links a { display:inline-flex; align-items:center; min-height:44px; }
+.grade-work form > label, .grade-work fieldset > label { display:block; margin-block:.6rem; }
+.grade-work fieldset legend { font-weight:650; color:#244b40; }
+.grade-work input[type=checkbox] { inline-size:1.15em; block-size:1.15em; accent-color:#173e3a; }
+.grade-work input[type=number] { width:9rem; }
+.grade-work form > button, .grade-work form select { min-height:44px; }
+.grade-work .grade-entry { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:.5rem 2rem; }
+.grade-work .grade-entry h2 { margin:.3rem 0; }
+.grade-work .grade-entry .number { text-align:end; font-size:1.25rem; font-weight:700; font-variant-numeric:tabular-nums; }
+.grade-work .pending-notice { border-inline-start:3px solid #914521; background:#f5ede3; padding:.75rem 1rem; }
+.publish-list { padding:0; list-style:none; max-width:55rem; border-top:2px solid #346859; }
+.publish-list li, .publish-list label { display:flex; gap:.65rem; align-items:center; }
+.publish-list li { justify-content:space-between; border-bottom:1px solid #ccd9cf; padding:.75rem .4rem; }
+.publish-list label { min-height:44px; cursor:pointer; }
+.publish-list a { flex:none; }
+@media(max-width:40rem) {
+  .grade-work .grade-entry { grid-template-columns:1fr; }
+  .grade-work .grade-entry .number { text-align:start; }
+  .grade-work .score-banner { gap:.3rem .6rem; }
+  .grade-work fieldset > label > select { width:100%; }
+}

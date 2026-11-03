@@ -145,6 +145,11 @@ class GradingTests(TestCase):
         self.client.force_login(self.a)
         self.assertContains(self.client.get("/me/grades/"), "0.00")
         self.assertNotContains(self.client.get("/me/grades/"), "16.00")
+        self.assertContains(self.client.get("/me/grades/"), "V2 已收件，成绩待发布")
+        self.client.force_login(self.b)
+        self.assertContains(self.client.get("/me/grades/"), "未交")
+        self.assertNotContains(self.client.get("/me/grades/"), "0.00")
+        self.client.force_login(self.a)
         with self.assertRaises(Conflict):
             self.release(second, "retry")
         self.draft(v2, "17", 1, [], [])
@@ -240,6 +245,25 @@ class GradingTests(TestCase):
         self.assertEqual(self.client.get(url).status_code, 404)
         self.assertEqual(AnswerRelease.objects.count(), 1)
 
+    def test_same_paper_two_classes_and_exact_deadline_order(self):
+        y_key = save_answers(self.k, self.later.pk, 0, "P", 1, self.questions)
+        self.assertEqual(y_key.paper_id, self.key.paper_id)
+        self.client.force_login(self.c)
+        y_url = f"/assignments/{self.later.pk}/answer-key/"
+        self.assertNotContains(self.client.get(y_url), "标准解答甲")
+        with patch(
+            "grading.services.timezone.now", return_value=self.task.due_at - timedelta(microseconds=1)
+        ):
+            with self.assertRaises(Conflict):
+                publish_answers(self.j, self.task.pk, self.key.pk, "x-release")
+        with patch("grading.services.timezone.now", return_value=self.task.due_at):
+            x_release = publish_answers(self.j, self.task.pk, self.key.pk, "x-release")
+            self.assertEqual(x_release.released_at, x_release.due_at)
+            with self.assertRaises(Conflict):
+                publish_answers(self.k, self.later.pk, y_key.pk, "y-release")
+        self.assertNotContains(self.client.get(y_url), "标准解答甲")
+        self.assertEqual(self.client.get(f"/assignments/{self.task.pk}/answer-key/").status_code, 404)
+
     def test_answer_attachment_and_preview_follow_only_this_class_release(self):
         with (
             TemporaryDirectory(dir=settings.RUNTIME) as temp,
@@ -310,6 +334,61 @@ class GradingTests(TestCase):
         self.assertContains(self.client.post(publish, selected), "共 1 人")
         self.assertEqual(GradeRelease.objects.count(), 1)
         self.assertFalse(MistakeCard.objects.exists())
+
+    def test_failed_multi_student_release_rolls_back_and_snapshot_scope_survives_regrading(self):
+        draft = self.draft()
+        bv1, _ = received(self.task, self.b, 1)
+        bdraft = save_grade(self.j, bv1.pk, 0, "16", "", None, [], [])
+        choices = {str(self.v1.pk): draft.edit_version, str(bv1.pk): bdraft.edit_version + 1}
+        with self.assertRaises(Conflict):
+            publish_grades(self.j, self.task.pk, "preview-stale", choices)
+        self.assertEqual(GradeRelease.objects.count(), 0)
+        self.assertFalse(MistakeCard.objects.exists())
+        first = self.release(draft, "valid").grades.get()
+        self.draft(version=1, score="12")
+        audit = f"/teacher/grades/{first.pk}/"
+        for account in (self.a, self.b, self.k):
+            self.client.force_login(account)
+            self.assertEqual(self.client.get(audit).status_code, 404)
+        self.client.force_login(self.j)
+        self.assertContains(self.client.get(audit), "0.00/20")
+        self.assertContains(self.client.get(audit), json.dumps(self.mark["text"]))
+
+    def test_grade_for_unpublished_key_never_reveals_its_solution_after_a_different_release(self):
+        grade = self.release(self.draft(), "first").grades.get()
+        correction = save_answers(
+            self.j, self.task.pk, 1, "P", 1, [dict(self.questions[0], answer="修订解法")]
+        )
+        Assignment.objects.filter(pk=self.task.pk).update(due_at=timezone.now() - timedelta(seconds=1))
+        publish_answers(self.j, self.task.pk, correction.pk, "latest")
+        self.client.force_login(self.a)
+        self.assertNotContains(self.client.get(f"/me/grades/{grade.pk}/"), 'id="annotation-data"')
+        self.assertNotContains(self.client.get("/me/mistakes/"), self.judgment["reason"])
+        self.client.force_login(self.j)
+        review_url = f"/teacher/submissions/{self.v1.pk}/review/"
+        self.assertContains(
+            self.client.get(review_url + f"?key={correction.pk}"), f'name="key_id" value="{correction.pk}"'
+        )
+        self.assertNotContains(
+            self.client.get(review_url + f"?key={correction.pk}"), '<option value="wrong" selected'
+        )
+        revised = save_grade(
+            self.j, self.v1.pk, 1, "10", "继续练习", correction.pk, [self.mark], [self.judgment]
+        )
+        second = self.release(revised, "confirmed-correction").grades.get()
+        self.client.force_login(self.a)
+        self.assertContains(self.client.get(f"/me/grades/{second.pk}/"), json.dumps(self.mark["text"]))
+        self.assertContains(self.client.get("/me/mistakes/"), "修订解法")
+
+    def test_malformed_grading_requests_return_recoverable_client_errors(self):
+        self.client.force_login(self.j)
+        url = f"/teacher/submissions/{self.v1.pk}/review/"
+        form = {"version": "0", "score": "12", "feedback": "保留本次输入", "key_id": self.key.pk}
+        for bad in ("[", "[" * 1100 + "]" * 1100, json.dumps([dict(self.mark, x=10**400)])):
+            response = self.client.post(url, {**form, "annotations": bad})
+            self.assertEqual(response.status_code, 400)
+            self.assertContains(response, "保留本次输入", status_code=400)
+        self.assertFalse(hasattr(self.v1, "grade_draft"))
 
 
 class DeadlineRaceTests(TransactionTestCase):

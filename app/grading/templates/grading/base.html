@@ -1,0 +1,3 @@
+{% extends "base.html" %}{% load static %}
+{% block head %}{{ block.super }}<link rel="stylesheet" href="{% static 'grading/reading.css' %}">{% endblock %}
+{% block content %}<div class="grade-work">{% block sheet %}{% endblock %}</div>{% endblock %}

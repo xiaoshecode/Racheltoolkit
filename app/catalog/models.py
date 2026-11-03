@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 
 from django.conf import settings
 from django.db import models
@@ -48,6 +49,10 @@ class Material(models.Model):
     title = models.CharField(max_length=160)
     original_file = models.ForeignKey("storage.StoredFile", on_delete=models.PROTECT, related_name="+")
     preview_file = models.ForeignKey("storage.StoredFile", on_delete=models.PROTECT, related_name="+", null=True)
+
+    @property
+    def format(self):
+        return Path(self.original_file.original_name).suffix.lstrip(".").upper()
 
     class Meta:
         ordering = ["position"]

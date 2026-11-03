@@ -1,6 +1,6 @@
-{% extends "base.html" %}{% block title %}{{ grade.release.assignment.title }} · 个人批阅{% endblock %}{% block content %}
+{% extends "grading/base.html" %}{% block title %}{{ grade.release.assignment.title }} · 个人批阅{% endblock %}{% block sheet %}
 {% if teacher %}<p><a href="{% url 'grading:review' grade.submission_id %}">返回原版批阅</a> · {{ grade.student.first_name }}（{{ grade.student.username }}）</p>{% else %}<p><a href="{% url 'grading:grades' %}">我的成绩</a></p>{% endif %}<h1>{{ grade.release.assignment.title }}</h1>
-<p>{{ grade.score|floatformat:2 }}/{{ grade.max_points }} · 已批阅 V{{ grade.submission.version }} · {{ grade.release.at|date:"Y-m-d H:i" }}</p>
+<p class="score-banner"><b>{{ grade.score|floatformat:2 }}/{{ grade.max_points }}</b><span>已批阅 V{{ grade.submission.version }} · {{ grade.release.at|date:"Y-m-d H:i" }}</span></p>
 <p><a href="/submissions/{{ grade.submission_id }}/">这版作业的整版回执</a></p>
 {% if visible %}<h2>教师评语</h2><p>{{ grade.feedback|default:"未填写" }}</p>{% include 'grading/annotation_editor.html' %}
-{% else %}<p>个人评语及页上批注待本班标准答案公布后查看。</p>{% endif %}{% endblock %}
+{% else %}<p class="pending-notice">个人评语及页上批注待本班标准答案公布后查看。</p>{% endif %}{% endblock %}

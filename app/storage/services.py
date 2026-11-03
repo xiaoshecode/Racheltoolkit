@@ -10,7 +10,7 @@ from django.conf import settings
 from django.http import FileResponse
 from django.utils import timezone
 
-from .backends import (CHUNK, DIRECTORIES, ContentConflict, StorageError, StorageUnavailable,
+from .backends import (CHUNK, DIRECTORIES, ContentConflict, StorageUnavailable,
                        WriteUncertain, get_backend, library_id)
 from .models import StoredFile
 

@@ -1,12 +1,15 @@
 from pathlib import Path
+from urllib.parse import urlencode
 
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.cache import patch_vary_headers
 from django.views.decorators.http import require_safe, require_http_methods
 
 from school.permissions import editable_courses, student_classes, teacher_classes
@@ -18,14 +21,50 @@ from .services import StaleEdit, draft_for, edit, receive_file
 
 
 def publications():
-    return CoursePublication.objects.select_related("revision").prefetch_related("revision__sections").order_by(
-        "revision__title", "course_id")
+    return CoursePublication.objects.select_related("revision").prefetch_related(
+        "revision__sections__materials__original_file").order_by("revision__title", "course_id")
+
+
+FORMATS = ("PPTX", "PPT", "PDF", "DOCX", "DOC")
+
+
+def search_options(request):
+    query = request.GET.get("q", "").strip()[:160]
+    file_format = request.GET.get("format", "").strip().upper()[:8]
+    return {"query": query, "file_format": file_format, "formats": FORMATS,
+            "searching": bool(query or file_format), "querystring": urlencode(
+                {k:v for k,v in (("q",query), ("format",file_format)) if v})}
+
+
+def find_sections(revision, chapters, options):
+    needle = options["query"].casefold()
+    course_match = needle in (revision.title + " " + revision.intro).casefold()
+    rows = []
+    for chapter in chapters:
+        chapter_match = course_match or needle in (chapter.title + " " + chapter.body).casefold()
+        files = [item for item in chapter.materials.all()
+                 if (not options["file_format"] or item.format == options["file_format"])
+                 and (chapter_match or needle in (item.title + " " + item.original_file.original_name).casefold())]
+        if files or (chapter_match and not options["file_format"]):
+            rows.append((chapter, files))
+    return rows
+
+
+def find_courses(options):
+    items = []
+    for pub in publications():
+        rows = find_sections(pub.revision, pub.revision.sections.all(), options)
+        matches_course = options["query"].casefold() in (pub.revision.title + " " + pub.revision.intro).casefold()
+        if rows or (matches_course and not options["file_format"]):
+            items.append((pub, rows))
+    return items
 
 
 @require_safe
 def home(request):
+    options = search_options(request)
     return render(request, "catalog/home.html", {
-        "publications": publications(), "can_edit": editable_courses(request.user).exists(),
+        **options, "publications": find_courses(options), "can_edit": editable_courses(request.user).exists(),
         "is_teacher": teacher_classes(request.user).exists(),
     })
 
@@ -33,15 +72,19 @@ def home(request):
 @require_safe
 def public_index(request):
     courses = []
-    for pub in publications():
+    options = search_options(request)
+    for pub, sections in find_courses(options):
         rev = pub.revision
         courses.append({"title": rev.title, "intro": rev.intro, "url": reverse("catalog_course", args=[pub.course_id]),
                         "published_at": rev.published_at.isoformat(), "chapters": [
-                            {"title": chapter.title, "url": reverse("catalog_chapter", args=[pub.course_id, chapter.stable_key])}
-                            for chapter in rev.sections.all()
+                            {"title": chapter.title, "url": reverse("catalog_chapter", args=[pub.course_id, chapter.stable_key]),
+                             "materials": [{"title": m.title, "format": m.format, "size": m.original_file.size} for m in files]}
+                            for chapter, files in sections
                         ]})
     response = JsonResponse({"courses": courses})
-    response["Access-Control-Allow-Origin"] = "*"
+    if request.headers.get("Origin") == settings.PUBLIC_PORTAL_ORIGIN:
+        response["Access-Control-Allow-Origin"] = settings.PUBLIC_PORTAL_ORIGIN
+    patch_vary_headers(response, ["Origin"])
     response["Cache-Control"] = "no-cache"
     return response
 
@@ -60,8 +103,10 @@ def course_page(request, revision, chapter_key=None, draft=False):
     by_section = {}
     for assignment in assignments:
         by_section.setdefault(assignment.chapter_key, []).append(assignment)
+    options = search_options(request)
     return render(request, "catalog/course.html", {
-        "revision": revision, "rows": [(s, by_section.get(s.stable_key, [])) for s in chapters],
+        **options, "revision": revision, "rows": [
+            (s, files, by_section.get(s.stable_key, [])) for s, files in find_sections(revision, chapters, options)],
         "teacher_groups": teacher_groups, "draft": draft,
         "file_route": "catalog_draft_file" if draft else "catalog_file",
     })

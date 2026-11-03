@@ -2,11 +2,13 @@ import os
 from django.core.exceptions import ImproperlyConfigured
 from .settings import *
 
+
 def required(name):
     value = os.environ.get(name, "").strip()
     if not value:
         raise ImproperlyConfigured(f"Missing deployment setting {name}")
     return value
+
 
 SECRET_KEY = required("DJANGO_SECRET_KEY")
 DEBUG = False
@@ -27,4 +29,3 @@ if os.environ.get("TEACH_STORAGE_BACKEND") != "seafile":
     raise ImproperlyConfigured("Production requires private Seafile storage")
 for name in ("SEAFILE_BASE_URL", "SEAFILE_LIBRARY_ID", "SEAFILE_REPO_TOKEN"):
     required(name)
-

@@ -157,9 +157,47 @@ class CoursePublicationTests(TestCase):
             self.assertContains(r,yes)
             self.assertNotContains(r,no)
             api = self.client.get(reverse("catalog_api"))
-            self.assertEqual(api["Access-Control-Allow-Origin"],"*")
+            self.assertNotIn("Access-Control-Allow-Origin",api)
             self.assertNotContains(api,"专属练习")
             self.assertEqual(api.json()["courses"][0]["chapters"][0]["url"],link)
         self.client.logout()
         self.assertNotContains(self.client.get(link),"专属练习")
         self.assertContains(self.client.get(link),"更新后的章")
+
+    def test_public_api_cors_allows_only_the_pages_origin(self):
+        self.client.logout()
+        url = reverse("catalog_api")
+        allowed = settings.PUBLIC_PORTAL_ORIGIN
+        for origin in [allowed, None, "null", allowed + ".example.org", "https://other.github.io"]:
+            headers = {"HTTP_ORIGIN": origin} if origin is not None else {}
+            response = self.client.get(url, **headers)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get("Access-Control-Allow-Origin"), allowed if origin == allowed else None)
+            self.assertNotIn("Access-Control-Allow-Credentials", response)
+            self.assertIn("Origin", response["Vary"])
+
+    def test_search_uses_published_titles_keywords_file_names_and_format(self):
+        self.assertNotContains(self.client.get(self.editor),"查看已发布课程")
+        self.post("add_section", title="证据来源", body="比较可信度")
+        sec = draft_for(self.course).sections.get().stable_key
+        self.post("upload",section=sec,title="方法讲义",original=SimpleUploadedFile("Notes.PDF",pdf()))
+        self.post("add_section", title="数据分析")
+        self.post("publish")
+        self.assertContains(self.client.get(self.editor),"查看已发布课程")
+        self.post("add_section",title="未公布的题库")
+        self.client.logout()
+        chapter_url = reverse("catalog_chapter",args=[self.course.pk,sec])
+        for query in ["证据来源","可信度","方法讲义","notes.pdf"]:
+            criteria = {"q": query, "format": "pdf"}
+            self.assertContains(self.client.get("/",criteria),"证据来源")
+            for route in [self.course_url,chapter_url]:
+                result=self.client.get(route,criteria)
+                self.assertContains(result,"Notes.PDF")
+                self.assertNotContains(result,"数据分析")
+                self.assertContains(result,"下载 PDF")
+            items=self.client.get(reverse("catalog_api"),criteria).json()["courses"]
+            self.assertEqual(items[0]["chapters"][0]["materials"][0], {
+                "title":"方法讲义","format":"PDF","size":len(pdf())})
+        for criteria in [{"q":"题库"},{"q":"方法讲义","format":"PPTX"}]:
+            self.assertEqual(self.client.get(reverse("catalog_api"),criteria).json()["courses"],[])
+            self.assertContains(self.client.get(self.course_url,criteria),"没有符合条件")

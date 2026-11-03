@@ -1,6 +1,16 @@
 .venv*/
 .local/
 *.sqlite3*
+*.sqlite
+*.db
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.key
+*.pem
+media/
+secrets/
 *.py[cod]
 __pycache__/
 .env

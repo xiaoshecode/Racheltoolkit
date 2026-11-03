@@ -1,6 +1,13 @@
-{% extends "base.html" %}{% block title %}成绩发布预览{% endblock %}{% block content %}
+{% extends "grading/base.html" %}{% block title %}成绩发布预览{% endblock %}{% block sheet %}
 <p>{{ task.teaching_class }}</p><h1>发布《{{ task.title }}》成绩</h1>
-<p>每位学生最新收件中，已评分 {{ pending }} 人，未评分 {{ ungraded }} 人。请确认要公布的提交版本。</p>
-<form method="post">{% csrf_token %}<input name="request_key" type="hidden" value="{{ request_key }}">
-<ul>{% for sub in submissions %}<li>{% if sub.grade_draft %}<label><input type="checkbox" name="draft" value="{{ sub.pk }}:{{ sub.grade_draft.edit_version }}">{{ sub.student.first_name }}（{{ sub.student.username }}） V{{ sub.version }} · {{ sub.grade_draft.score }}/{{ task.max_points }} · 草稿 R{{ sub.grade_draft.edit_version }}</label>{% else %}{{ sub.student.first_name }} V{{ sub.version }} · 待批{% endif %} <a href="{% url 'grading:review' sub.pk %}">批阅此版</a></li>{% empty %}<li>暂无成功收件。</li>{% endfor %}</ul>
+<p class="record-meta"><span class="state">已评分 {{ pending }} 人</span>未评分 {{ ungraded }} 人 · 各按每位学生的最新收件计数</p>
+<form id="publish-cohort" method="post">{% csrf_token %}<input name="request_key" type="hidden" value="{{ request_key }}">
+<h2>选择要公布的提交版本</h2><p>每名学生可选择一个版本，勾选后核对得分和草稿修订号。</p>
+<ul class="publish-list">{% for sub in submissions %}<li>{% if sub.grade_draft %}<label><input type="checkbox" name="draft" value="{{ sub.pk }}:{{ sub.grade_draft.edit_version }}"><span><b>{{ sub.student.first_name|default:"学生" }}</b>（{{ sub.student.username }}） · V{{ sub.version }}<br>{{ sub.grade_draft.score }}/{{ task.max_points }} · 草稿 R{{ sub.grade_draft.edit_version }}</span></label>{% else %}<span>{{ sub.student.first_name|default:"学生" }}（{{ sub.student.username }}） V{{ sub.version }} · 待批</span>{% endif %} <a href="{% url 'grading:review' sub.pk %}">批阅此版</a></li>{% empty %}<li>暂无成功收件。</li>{% endfor %}</ul>
+<p id="selected-count" role="status"></p>
 <button>确认发布所选成绩</button></form>{% endblock %}
+{% block scripts %}{{ block.super }}<script>
+const form=document.getElementById('publish-cohort');
+function countSelections(){document.getElementById('selected-count').textContent='本批已选择 '+form.querySelectorAll('input[name="draft"]:checked').length+' 个版本';}
+form.addEventListener('change',countSelections);countSelections();
+</script>{% endblock %}

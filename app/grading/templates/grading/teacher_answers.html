@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block title %}标准答案 · {{ task.title }}{% endblock %}{% block content %}
+{% extends "grading/base.html" %}{% block title %}标准答案 · {{ task.title }}{% endblock %}{% block sheet %}
 <p><a href="/assignments/{{ task.pk }}/">{{ task.teaching_class }} · {{ task.title }}</a></p><h1>编辑标准答案</h1>
 <p>本班截止 {{ task.due_at|date:"Y-m-d H:i" }}（北京时间）。{% if published %}已公布 R{{ published.revision.seq }} · {{ published.released_at|date:"m-d H:i" }}{% else %}尚未向学生公布{% endif %}</p>
 <form method="post" enctype="multipart/form-data">{% csrf_token %}

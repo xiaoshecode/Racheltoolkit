@@ -115,9 +115,11 @@ def origin(url):
 
 class SeafileBackend:
     """Repository token goes only to the API. Transfer links never leave this adapter."""
-    def __init__(self, base, token, transfer_origins=()):
+    def __init__(self, base, token, expected_library, transfer_origins=()):
         self.base = base.rstrip("/")
         self.token = token
+        self.expected_library = expected_library
+        self.verified = False
         self.origins = {origin(self.base)}
         if urlsplit(self.base).query or not token:
             raise ImproperlyConfigured("Seafile requires a base URL and repository token.")
@@ -126,6 +128,13 @@ class SeafileBackend:
                 raise ImproperlyConfigured("Transfer origins cannot contain paths or queries.")
             self.origins.add(origin(host))
         self.opener = build_opener(NoRedirect())
+
+    def check_library(self):
+        if not self.verified:
+            info = self.api("repo-info")
+            if not isinstance(info, dict) or info.get("repo_id") != self.expected_library:
+                raise StorageUnavailable("Repository token does not match the configured library.")
+            self.verified = True
 
     def request(self, request, *, dispatched=False):
         try:
@@ -147,8 +156,10 @@ class SeafileBackend:
         except (ValueError, UnicodeError, OSError, http.client.HTTPException):
             raise error("Invalid response from the file service.") from None
 
-    def api(self, endpoint, path, **params):
-        url = self.base + "/api/v2.1/via-repo-token/" + endpoint + "/?" + urlencode({"path": path, **params})
+    def api(self, endpoint, path=None, **params):
+        url = self.base + "/api/v2.1/via-repo-token/" + endpoint + "/"
+        if path is not None:
+            url += "?" + urlencode({"path": path, **params})
         req = Request(url, headers={"Authorization": "Bearer " + self.token, "Accept": "application/json"})
         return self.decode(self.request(req))
 
@@ -160,6 +171,7 @@ class SeafileBackend:
 
     def open(self, path):
         validate_path(path)
+        self.check_library()
         directory, name = posixpath.split(path)
         # A revoked token, missing library, or gateway's 404 is not proof of absence.
         listing = self.api("dir", directory)
@@ -173,6 +185,7 @@ class SeafileBackend:
 
     def put(self, path, data):
         validate_path(path)
+        self.check_library()
         directory, name = posixpath.split(path)
         url = self.link("upload-link", directory, replace="0")
         url += ("&" if urlsplit(url).query else "?") + "ret-json=1"
@@ -209,6 +222,5 @@ def library_id():
 def get_backend():
     if backend_name() == "local":
         return LocalBackend()
-    library_id()
     return SeafileBackend(os.getenv("SEAFILE_BASE_URL", ""), os.getenv("SEAFILE_REPO_TOKEN", ""),
-                          filter(None, (s.strip() for s in os.getenv("SEAFILE_TRANSFER_ORIGINS", "").split(","))))
+                          library_id(), filter(None, (s.strip() for s in os.getenv("SEAFILE_TRANSFER_ORIGINS", "").split(","))))
