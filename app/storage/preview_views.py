@@ -4,9 +4,10 @@ from pathlib import Path
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.views.decorators.cache import never_cache
 
+from .backends import StorageError
 from .models import PreviewAsset
 from .previews import RENDERER, prepare_preview, queue_preview
-from .services import StorageError, file_response
+from .services import file_response
 
 
 @never_cache
