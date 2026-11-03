@@ -1,0 +1,23 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'storage/annotation.css' %}">
+<section id="annotation-editor" class="annotation" aria-labelledby="annotation-heading" data-editable="{{ editable|yesno:'true,false' }}">
+  <header><div><small>版本批阅</small><h2 id="annotation-heading">作答与页上批注</h2></div><span class="annotation-mode">{% if editable %}教师草稿{% else %}已公布批阅{% endif %}</span></header>
+  {{ attachment_list|json_script:"annotation-files" }}{{ annotations|json_script:"annotation-data" }}
+  {% if editable %}<input type="hidden" name="annotations" id="annotation-value">{% endif %}
+  <div class="annotation-nav"><label>作答附件 <select id="anno-file"></select></label><a id="anno-original">下载原件</a></div>
+  <div class="annotation-tools">
+    <button type="button" data-action="prev">上一页</button><span id="anno-pages" aria-live="polite">—</span><button type="button" data-action="next">下一页</button>
+    <button type="button" data-action="zoom-out" aria-label="缩小页面">缩小</button><button type="button" data-action="zoom-in" aria-label="放大页面">放大</button><button type="button" data-action="rotate">旋转 90°</button>
+  </div>
+  {% if editable %}
+  <div class="annotation-tools annotation-pens" role="group" aria-label="批注工具"><button type="button" data-action="ink" aria-pressed="true">手写笔</button><button type="button" data-action="text" aria-pressed="false">文字锚点</button><button type="button" data-action="undo">撤销本页上一笔</button></div>
+  <div id="anno-textbox" hidden><label>文字批注 <input type="text" id="anno-text" maxlength="500" placeholder="输入批注，再点选页上位置"></label><button type="button" data-action="center">放在页中央</button></div>
+  {% endif %}
+  <p id="anno-status" role="status">正在加载作答……</p>
+  <div class="annotation-tools" id="anno-recovery" hidden><button type="button" data-action="refresh">刷新预览状态</button>{% if editable %}<button type="button" data-action="retry" hidden>重新生成预览</button>{% endif %}</div>
+  <div class="anno-scroll" tabindex="0" aria-label="作答页，可滚动查看放大的内容"><div class="anno-stage"><div class="anno-plane"><canvas aria-label="作答原页"></canvas><svg id="anno-layer" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="页上批注图层"></svg></div></div></div>
+  <details class="anno-access"><summary>本页批注列表</summary><ol id="anno-list"></ol></details>
+  {% if editable %}<p class="anno-hint">翻页会保留本次修改。完成后请保存批阅草稿。</p>{% endif %}
+  <noscript>页上批阅需要启用 JavaScript。可从提交回执下载原件。</noscript>
+</section>
+<script type="module" src="{% static 'storage/annotation.js' %}"></script>

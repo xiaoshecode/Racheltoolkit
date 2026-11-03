@@ -10,7 +10,7 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
 INSTALLED_APPS = [
     "django.contrib.auth", "django.contrib.contenttypes", "django.contrib.sessions",
     "django.contrib.messages", "django.contrib.staticfiles",
-    "django.contrib.admin", "school", "storage", "operations",
+    "django.contrib.admin", "school", "storage", "operations", "submissions",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

@@ -1,0 +1,23 @@
+name: Office preview smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/storage/office/**'
+      - 'app/storage/conversion.py'
+      - '.github/workflows/office-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements.txt
+      - run: docker build -t teach-office:smoke app/storage/office
+      - run: TEACH_OFFICE_IMAGE=teach-office:smoke python app/storage/office/smoke.py

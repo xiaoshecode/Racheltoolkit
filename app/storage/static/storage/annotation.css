@@ -1,0 +1,24 @@
+.annotation {border:1px solid #bdceca;border-radius:.8rem;background:#fff;padding:clamp(.7rem,2vw,1.4rem);min-width:0}
+.annotation header,.annotation-nav,.annotation-tools,#anno-textbox{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+.annotation header {justify-content:space-between}
+.annotation small {color:#33645d;font-weight:700;letter-spacing:.13em}
+.annotation h2 {margin:.2em 0 .5em;font-size:1.35rem}
+.annotation-mode {color:#185a52;background:#e4f1ed;border-radius:1em;padding:.2em .75em;font-size:.85em}
+.annotation-nav {justify-content:space-between;padding:.55em 0;border-bottom:1px solid #d6e1dd}
+.annotation-nav label {min-width:0;max-width:100%}
+.annotation select {max-width:100%}
+.annotation-tools {margin:.65em 0}
+.annotation button {background:#f7faf8;color:#164d47;border:1px solid #b4cbc5;border-radius:.4em;padding:.45em .7em;min-height:36px;cursor:pointer}
+.annotation button[aria-pressed="true"] {background:#164f47;color:white}
+.annotation button:disabled {opacity:.45;cursor:default}
+.annotation [hidden] {display:none!important}
+.anno-scroll {position:relative;overflow:auto;max-height:76vh;border:1px solid #b7c8c4;border-radius:.4em;background:#eaf0ee}
+.anno-stage {position:relative;margin:0 auto}
+.anno-plane {position:absolute;left:0;top:0;transform-origin:0 0;box-shadow:0 1px 5px #57686140;background:white}
+.anno-plane canvas,.anno-plane svg {display:block;width:100%;height:100%}
+.anno-plane svg {position:absolute;inset:0}
+.annotation[data-editable="true"] svg {cursor:crosshair;touch-action:none}
+.anno-access {margin:.65em 0}
+#anno-status,.anno-hint {font-size:.9em;color:#365752}
+.annotation :focus-visible {outline:3px solid #b65320;outline-offset:2px}
+@media(max-width:480px){.annotation select{display:block}.annotation-nav a{font-size:.9em}}

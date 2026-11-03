@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<p class="eyebrow">{{ group }}</p><h1>布置作业</h1><form class="panel" method="post">{% csrf_token %}{{ form.as_p }}<button>向本班发布作业</button></form>{% endblock %}
