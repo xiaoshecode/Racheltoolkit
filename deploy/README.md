@@ -31,6 +31,16 @@ docker compose --env-file .env exec web python app/manage.py issue_school_code S
 5. **真机复测。** 从教学主机注入与应用相同的专用库变量，在仓库根执行 `python deploy/verify_seafile.py --directory /接口测试` 和 `python deploy/verify_seafile.py --directory /接口测试 --roundtrip`。记录 read、upload、download、cleanup 和退出码。然后从校外网络验证 Pages 目录和同域课程页，使用虚构 A/B/J 完成收件、批阅、发布、越权拒绝；重启容器后复查原回执、成绩与附件。
 6. **试教。** 校方确认资料保存范围后才使用真实名册。吉老师与 5–10 名学生分别走校园 Wi-Fi、手机流量和真机拍照。记录参与数、独立完成数、失败环节和复测。M7c 及小班试教通过后再扩到约 100 人。
 
+### 从校外复核公开双入口
+
+在教学站发布一个虚构课程和章节，核对 Pages 的 `TEACH_ORIGIN` 已更新。在能从校外访问两个域名的设备上，从仓库根目录运行：
+
+```sh
+python deploy/verify_entrypoints.py --teaching-origin https://已验证的教学站域名
+```
+
+脚本匿名读取真实 Pages 页面、资源和配置，并要求其中的教学站与操作者指定的地址一致。它用系统信任链校验 HTTPS，检查健康页、允许及拒绝的跨域来源、已发布章节链接，以及匿名访问个人页的登录跳转。退出码 0 表示公开入口检查通过；1 表示检查失败；2 表示尚缺教学站地址或已发布的合成章节。现场另行核对合成课件的原件哈希、登录后的 A/B/J 教学闭环、云盘读写及重启后数据。日志仅保留检查结果。
+
 ## 收件对账
 
 `python app/manage.py reconcile_submissions` 列出未完成版本。加 `--repair` 检查云端大小及哈希，只在全部文件确认后签发回执。云端明确缺页时，学生可用原清单和原编号重试。只有操作员已核实旧执行者及远端上传均结束时，才对指定提交加 `--submission UUID --writer-stopped --repair`；冲突文件保持隔离。
