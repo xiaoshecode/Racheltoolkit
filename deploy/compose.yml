@@ -1,0 +1,28 @@
+services:
+  web:
+    image: racheltoolkit:${TEACH_RELEASE:?set release version}
+    build: ..
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - teaching-data:/data
+      - public-static:/data/staticfiles
+    command: [sh, -ec, "python app/manage.py check --deploy --fail-level WARNING && python app/manage.py migrate --noinput && python app/manage.py collectstatic --noinput && exec waitress-serve --listen=0.0.0.0:8000 --threads=12 --max-request-body-size=23068672 config.wsgi:application"]
+  https:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      TEACH_HOST: ${TEACH_HOST:?set HTTPS hostname}
+    depends_on: [web]
+    ports: ["80:80","443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - public-static:/srv/staticfiles:ro
+      - caddy-data:/data
+      - caddy-config:/config
+volumes:
+  teaching-data:
+  public-static:
+  caddy-data:
+  caddy-config:
+

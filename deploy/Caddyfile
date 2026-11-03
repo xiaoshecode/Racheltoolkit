@@ -1,0 +1,14 @@
+{$TEACH_HOST} {
+    encode gzip
+    request_body {
+        max_size 22MB
+    }
+    handle_path /static/* {
+        root * /srv/staticfiles
+        file_server
+    }
+    handle {
+        reverse_proxy web:8000
+    }
+}
+
