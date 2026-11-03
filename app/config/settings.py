@@ -10,6 +10,7 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
 INSTALLED_APPS = [
     "django.contrib.auth", "django.contrib.contenttypes", "django.contrib.sessions",
     "django.contrib.messages", "django.contrib.staticfiles",
+    "django.contrib.admin", "school", "storage", "operations",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -18,6 +19,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "config.middleware.PrivateResponses",
 ]
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [{
@@ -51,4 +53,5 @@ LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/me/"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 22 * 1024 * 1024
 FILE_UPLOAD_TEMP_DIR = str(RUNTIME)
+TEST_RUNNER = "config.testing.ProjectRunner"
 

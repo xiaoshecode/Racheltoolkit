@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block title %}导入班级名册{% endblock %}
+{% block content %}
+<h1>导入班级名册</h1><p>名册使用三列表头 <code>student_id,name,class_id</code>。学号按文本输入，保留前导零。</p>
+<h2>可导入的班级</h2><ul>{% for group in classes %}<li>{{ group }}，班级编号 {{ group.pk }}</li>{% endfor %}</ul>
+<form method="post">{% csrf_token %}{{ form.as_p }}
+<button name="action" value="preview">预检整批名册</button>
+{% if rows %}<h2>预检通过 · {{ rows|length }} 行</h2><table><thead><tr><th>学号</th><th>姓名</th><th>班级编号</th></tr></thead>
+<tbody>{% for row in rows %}<tr><td>{{ row.username }}</td><td>{{ row.name }}</td><td>{{ row.class_id }}</td></tr>{% endfor %}</tbody></table>
+<button name="action" value="apply">确认导入这份名册</button>{% endif %}</form>
+{% if summary %}<p role="status">{{ summary }}</p>{% endif %}
+{% endblock %}
