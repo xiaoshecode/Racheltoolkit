@@ -1,0 +1,5 @@
+# Add this file on a production Linux host that also runs the preview worker.
+services:
+  web:
+    volumes:
+      - ${TEACH_PERSIST_DIR:?set the private host data directory}:/data

@@ -5,7 +5,9 @@ cd "$(dirname "$0")"
 test "${GITHUB_ACTIONS:-}" = true
 trap 'docker compose --env-file .env down --volumes || true' EXIT
 umask 077
+sudo install -d -o 10001 -g 10001 -m 0700 "$PWD/.local/host-data" "$PWD/.local/independent-backup"
 printf 'TEACH_RELEASE=rehearsal\nTEACH_HOST=teaching.test\nTEACH_STORAGE_BACKEND=seafile\nSEAFILE_BASE_URL=https://seafile.test\nSEAFILE_LIBRARY_ID=fixture\nSEAFILE_REPO_TOKEN=unused-synthetic-value\nDJANGO_SECRET_KEY=%s\n' "$(openssl rand -hex 48)" > .env
+printf 'COMPOSE_FILE=compose.yml:compose.host-data.yml\nTEACH_PERSIST_DIR=%s\n' "$PWD/.local/host-data" >> .env
 # Use Caddy's private CA in CI only. Production obtains its certificate through ACME.
 sed -i '1a\    tls internal' Caddyfile
 docker compose --env-file .env up -d --build
@@ -24,5 +26,7 @@ for attempt in $(seq 1 25); do
 done
 curl_ci https://teaching.test/api/public/courses/ | grep -q courses
 docker compose exec -T web python app/manage.py shell -c 'from school.models import Term; assert Term.objects.filter(code="restart-sentinel").exists()'
+TEACH_BACKUP_DIR="$PWD/.local/independent-backup" sh backup.sh
+sudo find "$PWD/.local/independent-backup" -name manifest.json | grep -q manifest.json
 printf 'PASS isolated HTTPS, production settings, static CSS, restart and persisted SQLite record\n'
 
