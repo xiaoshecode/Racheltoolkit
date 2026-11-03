@@ -5,6 +5,7 @@ cd "$(dirname "$0")"
 test "${GITHUB_ACTIONS:-}" = true
 trap 'docker compose --env-file .env down --volumes || true' EXIT
 umask 077
+mkdir -p .local
 sudo install -d -o 10001 -g 10001 -m 0700 "$PWD/.local/host-data" "$PWD/.local/independent-backup"
 printf 'TEACH_RELEASE=rehearsal\nTEACH_HOST=teaching.test\nTEACH_STORAGE_BACKEND=seafile\nSEAFILE_BASE_URL=https://seafile.test\nSEAFILE_LIBRARY_ID=fixture\nSEAFILE_REPO_TOKEN=unused-synthetic-value\nDJANGO_SECRET_KEY=%s\n' "$(openssl rand -hex 48)" > .env
 printf 'COMPOSE_FILE=compose.yml:compose.host-data.yml:.local/portal.yml\nTEACH_PORTAL_ORIGIN=https://portal.test\nTEACH_PERSIST_DIR=%s\n' "$PWD/.local/host-data" >> .env
@@ -29,7 +30,7 @@ printf '{"origin":"https://teaching.test"}\n' > ../portal/config.json
 printf '\n127.0.0.1 teaching.test portal.test\n' | sudo tee -a /etc/hosts >/dev/null
 docker compose --env-file .env up -d --build
 for attempt in $(seq 1 45); do
-    if docker compose cp https:/data/caddy/pki/authorities/local/root.crt .local/fixture-ca.pem; then break; fi
+    if docker compose exec -T https cat /data/caddy/pki/authorities/local/root.crt > .local/fixture-ca.pem; then break; fi
     sleep 2
 done
 curl_ci() { curl --cacert .local/fixture-ca.pem -sSf --noproxy '*' "$@"; }
