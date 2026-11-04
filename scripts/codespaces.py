@@ -212,7 +212,7 @@ def main():
                     raise RuntimeError("Startup failed; the owned service is stopping after a preview. Inspect service.log before retrying.") from None
             raise RuntimeError("Service did not start; inspect .local/codespaces/service.log.")
         print(f"Teaching trial: https://{env['TEACH_HOST']}")
-        print("Port 8000 remains private until you explicitly share it in the Codespaces Ports panel.")
+        print("For anonymous access, verify port 8000 is Public in the Codespaces Ports panel.")
 
 
 if __name__ == "__main__":

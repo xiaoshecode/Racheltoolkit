@@ -29,6 +29,10 @@ def with_codespaces_host(application, canonical_host):
         # Other hosts still reach Django's normal ALLOWED_HOSTS validation.
         if environ.get("HTTP_HOST") == "localhost:8000":
             environ["HTTP_HOST"] = canonical_host
+            # The tunnel also rewrites a same-origin browser POST to this
+            # exact local origin. Preserve all other origins for CSRF checks.
+            if environ.get("HTTP_ORIGIN") == "http://localhost:8000":
+                environ["HTTP_ORIGIN"] = f"https://{canonical_host}"
         return application(environ, start_response)
 
     return forwarded_application

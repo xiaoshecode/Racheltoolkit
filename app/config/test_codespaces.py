@@ -1,15 +1,28 @@
 import importlib.util
+import json
 import os
+from http.cookies import SimpleCookie
+from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
-from urllib.parse import unquote
+from urllib.parse import unquote, urlencode
 from wsgiref.util import setup_testing_defaults
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.wsgi import get_wsgi_application
+from django.http import JsonResponse
+from django.middleware.csrf import get_token
 from django.test import SimpleTestCase, override_settings
+from django.urls import path
+
+
+def csrf_probe(request):
+    return JsonResponse({"token": get_token(request)})
+
+
+urlpatterns = [path("csrf-probe/", csrf_probe)]
 
 
 def load_config(filename, environment):
@@ -180,7 +193,7 @@ class CodespacesHostTests(SimpleTestCase):
             module = load_config("codespaces_wsgi.py", {"DJANGO_SETTINGS_MODULE": "config.codespaces"})
         return module.with_codespaces_host(application, self.canonical)
 
-    def test_only_exact_internal_host_is_normalized_without_changing_origin(self):
+    def test_only_exact_internal_host_is_normalized_without_changing_other_origins(self):
         received = []
 
         def application(environ, start_response):
@@ -236,3 +249,53 @@ class CodespacesHostTests(SimpleTestCase):
                     self.assertEqual(statuses, [expected])
                     if expected == "200 OK":
                         self.assertEqual(content, b'{"status": "ok"}')
+
+    def test_real_csrf_checks_require_valid_token_and_correct_tunnel_origin(self):
+        with override_settings(
+            ROOT_URLCONF=__name__, DEBUG=False, ALLOWED_HOSTS=[self.canonical],
+            CSRF_TRUSTED_ORIGINS=[f"https://{self.canonical}"],
+            CSRF_COOKIE_SECURE=True, SECURE_SSL_REDIRECT=True,
+            SECURE_PROXY_SSL_HEADER=None, USE_X_FORWARDED_HOST=False,
+        ):
+            wrapped = self.wrapper(get_wsgi_application())
+
+            def request(method, host, origin=None, token=None, cookie=""):
+                payload = urlencode({"csrfmiddlewaretoken": token}).encode() if token else b""
+                environ = {}
+                setup_testing_defaults(environ)
+                environ.update(
+                    HTTP_HOST=host, PATH_INFO="/csrf-probe/", REQUEST_METHOD=method,
+                    HTTP_COOKIE=cookie, CONTENT_TYPE="application/x-www-form-urlencoded",
+                    CONTENT_LENGTH=str(len(payload)),
+                    **{"wsgi.url_scheme": "https", "wsgi.input": BytesIO(payload)},
+                )
+                if origin is not None:
+                    environ["HTTP_ORIGIN"] = origin
+                response = {}
+
+                def start_response(status, headers):
+                    response.update(status=status, headers=dict(headers))
+
+                body = wrapped(environ, start_response)
+                try:
+                    response["body"] = b"".join(body)
+                finally:
+                    body.close()
+                return response
+
+            initial = request("GET", "localhost:8000")
+            self.assertEqual(initial["status"], "200 OK")
+            token = json.loads(initial["body"])["token"]
+            cookies = SimpleCookie(initial["headers"]["Set-Cookie"])
+            cookie = f"csrftoken={cookies['csrftoken'].value}"
+            for host, origin, submitted_token, expected in (
+                ("localhost:8000", "http://localhost:8000", token, "200 OK"),
+                (self.canonical, f"https://{self.canonical}", token, "200 OK"),
+                ("localhost:8000", "https://unrelated.invalid", token, "403 Forbidden"),
+                ("localhost:8000", "http://localhost:8000.evil.test", token, "403 Forbidden"),
+                ("localhost:8000", "http://localhost:8000", None, "403 Forbidden"),
+                (self.canonical, "http://localhost:8000", token, "403 Forbidden"),
+            ):
+                with self.subTest(host=host, origin=origin, has_token=bool(submitted_token)):
+                    result = request("POST", host, origin, submitted_token, cookie)
+                    self.assertEqual(result["status"], expected)
