@@ -9,4 +9,3 @@ Unit=racheltoolkit-previews.service
 
 [Install]
 WantedBy=timers.target
-
