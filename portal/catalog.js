@@ -29,6 +29,7 @@ async function loadCatalog() {
   list.replaceChildren();
   status.textContent = "正在读取课程目录…";
   const signal = AbortSignal.timeout(10000);
+  let isTrialHost = false;
   try {
     const settings = await fetch(new URL("./config.json", import.meta.url), {signal, cache: "no-store"});
     if (!settings.ok) throw new Error("Configuration unavailable");
@@ -40,6 +41,7 @@ async function loadCatalog() {
     }
     const server = new URL(origin);
     if (server.origin !== origin || server.protocol !== "https:") throw new Error("Invalid teaching origin");
+    isTrialHost = server.hostname.endsWith(".app.github.dev");
     direct.href = server.href;
     direct.hidden = false;
     const catalogUrl = new URL("/api/public/courses/", server);
@@ -74,7 +76,9 @@ async function loadCatalog() {
     status.textContent = courses.length ? "找到 " + courses.length + " 门已发布课程。" :
       (filters.get("q") || filters.get("format") ? "没有符合条件的资料，请调整查找条件。" : "目前没有已发布课程。");
   } catch {
-    if (current === generation) status.textContent = "暂时无法读取课程。请重试，或直接打开教学站。";
+    if (current === generation) status.textContent = isTrialHost
+      ? "暂时无法读取课程。教学试用站可能尚未开启；如果持续不可用，请联系老师确认并开启。"
+      : "暂时无法读取课程。请重试，或直接打开教学站。";
   } finally {
     if (current === generation) retry.disabled = false;
   }
