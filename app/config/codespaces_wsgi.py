@@ -22,4 +22,19 @@ def with_public_static(application, static_root):
     )
 
 
-application = with_public_static(get_wsgi_application(), settings.STATIC_ROOT)
+def with_codespaces_host(application, canonical_host):
+    def forwarded_application(environ, start_response):
+        # The Codespaces tunnel sends this exact internal Host. Use only the
+        # configured external identity, never a client-supplied forwarded host.
+        # Other hosts still reach Django's normal ALLOWED_HOSTS validation.
+        if environ.get("HTTP_HOST") == "localhost:8000":
+            environ["HTTP_HOST"] = canonical_host
+        return application(environ, start_response)
+
+    return forwarded_application
+
+
+application = with_codespaces_host(
+    with_public_static(get_wsgi_application(), settings.STATIC_ROOT),
+    settings.ALLOWED_HOSTS[0],
+)

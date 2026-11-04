@@ -8,6 +8,7 @@ from wsgiref.util import setup_testing_defaults
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.core.wsgi import get_wsgi_application
 from django.test import SimpleTestCase, override_settings
 
 
@@ -167,3 +168,71 @@ class CodespacesStaticTests(SimpleTestCase):
     def test_wsgi_refuses_development_settings(self):
         with self.assertRaises(ImproperlyConfigured):
             load_config("codespaces_wsgi.py", {"DJANGO_SETTINGS_MODULE": "config.settings"})
+
+
+class CodespacesHostTests(SimpleTestCase):
+    canonical = "test-classroom-123456-8000.app.github.dev"
+
+    def wrapper(self, application):
+        with TemporaryDirectory() as directory, override_settings(STATIC_ROOT=directory), patch(
+            "django.core.wsgi.get_wsgi_application", return_value=application
+        ):
+            module = load_config("codespaces_wsgi.py", {"DJANGO_SETTINGS_MODULE": "config.codespaces"})
+        return module.with_codespaces_host(application, self.canonical)
+
+    def test_only_exact_internal_host_is_normalized_without_changing_origin(self):
+        received = []
+
+        def application(environ, start_response):
+            received.append(environ.copy())
+            return []
+
+        wrapped = self.wrapper(application)
+        for host in ("localhost:8000", self.canonical, "evil.test", "localhost.evil.test:8000", "localhost:8001"):
+            with self.subTest(host=host):
+                environ = {"HTTP_HOST": host, "HTTP_ORIGIN": "https://origin.example.test"}
+                wrapped(environ, None)
+                self.assertEqual(received[-1]["HTTP_HOST"], self.canonical if host == "localhost:8000" else host)
+                self.assertEqual(received[-1]["HTTP_ORIGIN"], "https://origin.example.test")
+
+    def test_forwarded_host_cannot_supply_the_canonical_identity(self):
+        received = []
+
+        def application(environ, start_response):
+            received.append(environ["HTTP_HOST"])
+            return []
+
+        wrapped = self.wrapper(application)
+        wrapped({"HTTP_HOST": "localhost:8000", "HTTP_X_FORWARDED_HOST": "evil.test"}, None)
+        wrapped({"HTTP_HOST": self.canonical, "HTTP_X_FORWARDED_HOST": "evil.test"}, None)
+        wrapped({"HTTP_HOST": "evil.test", "HTTP_X_FORWARDED_HOST": self.canonical}, None)
+        self.assertEqual(received, [self.canonical, self.canonical, "evil.test"])
+
+    def test_django_accepts_tunnel_host_and_rejects_other_hosts(self):
+        with override_settings(
+            DEBUG=False, ALLOWED_HOSTS=[self.canonical],
+            SECURE_SSL_REDIRECT=True, SECURE_PROXY_SSL_HEADER=None,
+            USE_X_FORWARDED_HOST=False,
+        ):
+            wrapped = self.wrapper(get_wsgi_application())
+            for host, expected in (
+                ("localhost:8000", "200 OK"),
+                (self.canonical, "200 OK"),
+                ("evil.test", "400 Bad Request"),
+                ("localhost.evil.test:8000", "400 Bad Request"),
+                ("localhost:8001", "400 Bad Request"),
+            ):
+                with self.subTest(host=host):
+                    environ = {}
+                    setup_testing_defaults(environ)
+                    environ.update(HTTP_HOST=host, HTTP_X_FORWARDED_HOST=self.canonical,
+                                   PATH_INFO="/health/", **{"wsgi.url_scheme": "https"})
+                    statuses = []
+                    body = wrapped(environ, lambda status, headers: statuses.append(status))
+                    try:
+                        content = b"".join(body)
+                    finally:
+                        body.close()
+                    self.assertEqual(statuses, [expected])
+                    if expected == "200 OK":
+                        self.assertEqual(content, b'{"status": "ok"}')

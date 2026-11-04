@@ -28,8 +28,8 @@ def main():
     env = environment()
     opener = build_opener(NoRedirect())
 
-    def get(path, expected):
-        request = Request("http://127.0.0.1:8000" + path, headers={"Host": env["TEACH_HOST"]})
+    def get(path, expected, host=None):
+        request = Request("http://127.0.0.1:8000" + path, headers={"Host": host or env["TEACH_HOST"]})
         try:
             response = opener.open(request, timeout=10)
         except HTTPError as error:
@@ -40,6 +40,8 @@ def main():
             return body, response.headers
 
     assert json.loads(get("/health/", 200)[0]) == {"status": "ok"}
+    assert json.loads(get("/health/", 200, host="localhost:8000")[0]) == {"status": "ok"}
+    get("/health/", 400, host="unrelated.invalid")
     assert b"box-sizing" in get("/static/school.css", 200)[0]
     login, headers = get("/login/", 200)
     assert b'csrfmiddlewaretoken' in login and "Secure" in headers.get("Set-Cookie", "")
