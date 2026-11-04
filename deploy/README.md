@@ -4,6 +4,40 @@
 
 公开入口位于 [Racheltoolkit Pages](https://xiaoshecode.github.io/Racheltoolkit/)。工作流仅上传 `portal/`。教学站负责课程目录的当前发布修订、账号会话、提交和文件授权。仓库变量 `TEACH_ORIGIN` 留空时，Pages 显示“教学站地址尚未配置”。在教学站 HTTPS 验证通过后设置此变量并重新运行 Public portal 工作流即可连接。教师此后发布课件无需重建 Pages。
 
+## Codespaces 在线试用
+
+Codespaces 可以按需运行完整 Django 教学站、SQLite、私有文件存储及隔离的 Office 预览，适合演示和试用。它会闲置停止，单次运行最多 12 小时，不能保证 24 小时在线；停止后 Pages 仍在，但教学站不可访问。[GitHub 生命周期与数据保存](https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle)
+
+### 首次打开和分享
+
+1. 打开[创建 Racheltoolkit Codespace](https://codespaces.new/xiaoshecode/Racheltoolkit)，选择 `main` 和 2 核机型，按 GitHub 页面显示核对账号用量和预算。仓库配置会自动安装 Python 依赖、构建 Office 镜像、迁移空库、收集静态资源并启动服务。
+2. 在编辑器中私下打开 `.local/codespaces/access.txt`。空站只创建一次 `rachel-admin` 随机密码，用它登录 Ports 面板中 8000 地址的 `/admin/`，首次登录后更换密码并建立课程、班级和教师授权。后续 setup、重启不会重置账号或密码；不要把该文件提交到 Git、贴入聊天或分享给学生。
+3. 8000 默认 Private。需要师生在线访问时，在 Ports 面板将该端口的 **Port Visibility → Public**，再复制 HTTPS 地址。公开端口允许访客打开站点，个人教学数据仍由应用登录和权限控制。Codespace 重启或移除再添加端口后会恢复 Private，每次分享前重新核对。[GitHub 端口安全规则](https://docs.github.com/en/codespaces/reference/security-in-github-codespaces)
+4. **端口协议保留 HTTP。** 浏览器使用 `https://CODESPACE_NAME-8000.app.github.dev`，外层 TLS 由 GitHub 处理；内部 Waitress 接收 HTTP 并按 HTTPS 语义生成链接和安全 Cookie。不要将 Ports 的 Change Port Protocol 改成 HTTPS，应用内部没有 TLS 监听器。[端口与 HTTPS 转发说明](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace)
+
+在匿名窗口确认公开地址的 `/health/` 和已发布课程可访问后，可将该 HTTPS 地址设为仓库变量 `TEACH_ORIGIN`，重新运行 **Public portal**，保持 Pages 为统一入口。创建另一个 Codespace 后地址会改变，需要重新核验和更新变量。
+
+### 启停、更新和备份
+
+以下命令在 Codespace 的仓库根目录执行。首次创建自动运行 setup，每次启动自动运行 start；手动更新前先 stop。
+
+| 操作 | 命令 | 作用 |
+| --- | --- | --- |
+| 准备或更新 | `python3 scripts/codespaces.py setup` | 安装依赖、准备预览镜像；已有库先生成快照，再迁移和收集静态文件 |
+| 启动服务 | `python3 scripts/codespaces.py start` | 启动网页和预览工作进程，输出试用站地址 |
+| 停止服务 | `python3 scripts/codespaces.py stop` | 停止本项目网页和预览进程，保留数据 |
+| 生成备份 | `python3 scripts/codespaces.py backup` | 校验并保存数据库、文件及清单，输出完整快照目录 |
+
+`stop` 只停止应用。用完后还需在 [Your Codespaces](https://github.com/codespaces) 对该环境选择 **Stop codespace**，才停止计算用量；关闭浏览器标签不会立即停止环境。默认闲置期限为 30 分钟，可在个人设置中调整为 5–240 分钟，单次最长运行期限仍为 12 小时。[停止方式](https://docs.github.com/en/codespaces/developing-in-a-codespace/stopping-and-starting-a-codespace)、[闲置设置](https://docs.github.com/en/codespaces/setting-your-user-preferences/setting-your-timeout-period-for-github-codespaces)
+
+SQLite、私有上传、密钥和日志放在工作区 `.local/codespaces/`；备份位于其 `backups/`。这些目录被 Git 忽略，在同一 Codespace 停止、恢复和重建后保留。**工作区内快照不是独立备份：必须把完整快照目录私下下载到本机或另一处私有存储。删除 Codespace（包括到期自动删除）会同时删除原数据和其中的备份，公开 GitHub 仓库不会保存它们。** 恢复时使用本文后面的隔离恢复流程，先验证快照，不直接覆盖运行中的数据库。[GitHub 数据生命周期](https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle)
+
+### Pro 用量和环境边界
+
+按 GitHub 当前说明，个人 Pro 每月包含 **180 核时和 20 GB-month 存储**，由该账号下的 Codespaces 共享；若计算额度全部用于一个 2 核环境，约能运行 90 小时。停止的环境仍占存储用量，实际剩余额度、付款方式和预算以个人 Billing 页面为准。本项目不假定账号已开通 Pro、还有免费余额或允许超额付费，也不会调整预算或自动续开环境。[GitHub Codespaces 计费说明](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces)
+
+试用使用独立的 `config.codespaces`：关闭 DEBUG，只允许本环境精确主机名，默认把文件保存在私有本地目录。确有私有 Seafile 时，才通过 Codespaces secrets 显式设置 `TEACH_STORAGE_BACKEND=seafile` 和完整的库配置。Office 转换仍在无网络、无主机挂载且有资源限制的子容器内运行；网页和工作进程不继承 GitHub 访问令牌。`config.production` 仍要求私有 Seafile，以下生产主机流程保持独立。
+
 ## 生产主机
 
 使用有持久化磁盘的 Linux 主机、Docker Compose、指向主机的 HTTPS 域名和独立的私有备份目录。让域名解析指向服务器，开放 80、443 给 Caddy。应用容器只通过内部网络提供 WSGI。数据库保存在持久卷 `teaching-data`；反向代理只能读取单独的公共静态卷。

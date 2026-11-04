@@ -1,0 +1,45 @@
+name: Codespaces trial startup
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.devcontainer/**'
+      - 'scripts/codespaces.py'
+      - 'deploy/verify_codespaces.py'
+      - 'app/config/codespaces*.py'
+      - 'app/operations/management/commands/bootstrap_codespace.py'
+      - 'requirements.txt'
+      - '.github/workflows/codespaces-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Synthetic identity: no Codespace or public port is created by this job.
+      CODESPACES: 'true'
+      CODESPACE_NAME: isolated-ci-classroom
+      GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN: app.github.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Prepare the private trial runtime and start the service
+        run: |
+          python scripts/codespaces.py setup
+          python scripts/codespaces.py start
+      - name: Verify HTTPS application semantics, credentials and private paths
+        run: .venv-codespaces/bin/python deploy/verify_codespaces.py
+      - name: Verify backup and restart preserve the database and initial account
+        run: |
+          python scripts/codespaces.py backup
+          python scripts/codespaces.py stop
+          python scripts/codespaces.py setup
+          python scripts/codespaces.py start
+          .venv-codespaces/bin/python deploy/verify_codespaces.py --restart
+      - name: Stop only the owned service
+        if: always()
+        run: python scripts/codespaces.py stop

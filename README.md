@@ -2,6 +2,12 @@
 
 [公开课程入口](https://xiaoshecode.github.io/Racheltoolkit/)使用 GitHub Pages。登录、课程发布、整版回执、教师批阅、标准答案和个人错题由 Django 教学站提供。SQLite 保存业务记录，生产文件使用服务器代理访问私有 Seafile 资料库。
 
+## Codespaces 在线试用
+
+从[创建 Racheltoolkit Codespace](https://codespaces.new/xiaoshecode/Racheltoolkit)启动，等待自动安装和启动完成，在 Ports 面板打开 8000 的地址。首次空站的管理员账号和随机密码只保存在私有工作区 `.local/codespaces/access.txt`，用它登录 `/admin/` 建课程和班级；以后启动保留账号与数据。需要学生访问时，将 8000 的 Port Visibility 设为 Public，重启 Codespace 后需重新分享。详细命令、Pages 接入和备份见[在线试用说明](deploy/README.md#codespaces-在线试用)。
+
+这是按需开启的教学试用环境。GitHub 会在闲置超时或单次运行满 12 小时后停止 Codespace；全天候教学使用下方生产部署方案。[运行期限](https://docs.github.com/en/codespaces/about-codespaces/understanding-the-codespace-lifecycle)
+
 ## 本机验收
 
 在 Windows 仓库根目录执行 `pwsh -NoProfile -File scripts/start-review.ps1`，打开 [本机教学空间](http://127.0.0.1:8765/)。脚本使用隔离的虚构班级和项目内的 Python 环境。吉老师、甲、乙的随机体验密码在本机 `.local/review/access.txt` 中。

@@ -6,3 +6,4 @@ pypdf==6.21.4
 sqlparse==0.6.1
 tzdata==2026.6
 waitress==3.0.2
+whitenoise==6.12.0

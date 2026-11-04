@@ -1,0 +1,22 @@
+{
+  "name": "Racheltoolkit online trial",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.13",
+      "installTools": false
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {}
+  },
+  "hostRequirements": {"cpus": 2, "memory": "8gb"},
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {"label": "Racheltoolkit teaching trial", "onAutoForward": "notify", "protocol": "http"}
+  },
+  "postCreateCommand": "python3 scripts/codespaces.py setup",
+  "postStartCommand": "python3 scripts/codespaces.py start",
+  "waitFor": "postCreateCommand",
+  "customizations": {
+    "vscode": {"settings": {"python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv-codespaces/bin/python"}}
+  }
+}

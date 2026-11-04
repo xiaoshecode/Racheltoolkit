@@ -27,6 +27,7 @@
 {% if workspace_teacher %}<a href="/teacher/roster/" {% if workspace_section == 'roster' %}aria-current="page"{% endif %}><span aria-hidden="true">＋</span>班级名册</a>{% endif %}
 </nav><p class="nav-footnote">把每一次练习<br>变成下一步的起点。</p></aside>{% endif %}
 <main id="content" tabindex="-1">
+{% if teaching_trial %}<p class="notice" role="status">在线试用站 · 按需开放</p>{% endif %}
 {% if messages %}{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}{% endif %}
 {% block content %}{% endblock %}
 </main></div>
