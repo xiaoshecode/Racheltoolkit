@@ -1,0 +1,59 @@
+name: Deploy teaching host
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: teaching-production
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -r requirements.txt
+      - run: python app/manage.py check && python app/manage.py makemigrations --check --dry-run && python app/manage.py test
+      - run: python -m unittest discover -s deploy/tests -v
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: teaching-production
+      url: ${{ vars.TEACH_ORIGIN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy tested revision over authenticated SSH
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Set production DEPLOY_HOST}"
+          : "${DEPLOY_USER:?Set production DEPLOY_USER}"
+          : "${DEPLOY_PATH:?Set production DEPLOY_PATH}"
+          : "${DEPLOY_SSH_KEY:?Set production DEPLOY_SSH_KEY}"
+          : "${DEPLOY_KNOWN_HOSTS:?Set verified production DEPLOY_KNOWN_HOSTS}"
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$DEPLOY_PATH" =~ ^/[a-zA-Z0-9_./-]+$ && "$DEPLOY_PATH" != *..* ]]
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          umask 077
+          mkdir -p .local/deploy-ssh
+          trap 'rm -f .local/deploy-ssh/key .local/deploy-ssh/known_hosts' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > .local/deploy-ssh/key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > .local/deploy-ssh/known_hosts
+          unset DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS
+          ssh -T -i .local/deploy-ssh/key -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile=.local/deploy-ssh/known_hosts \
+            -o ConnectTimeout=15 "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DEPLOY_PATH' && python3 - '$RELEASE_SHA'" < deploy/release.py

@@ -37,3 +37,5 @@ python -m venv .venv
 
 生产镜像、HTTPS 代理、云盘探测、备份和兼容版本回退见 [教学站部署手册](deploy/README.md)。Pages 使用仓库变量 `TEACH_ORIGIN` 接入已验证的教学主机。当前站点是否开放真实教学，以项目验收台账的 M7c 和 M8 记录为准。
 
+已准备 **Deploy teaching host** 手动工作流、迁移前快照和 HTTPS 健康检查，以及[后台预览与每日备份定时器](deploy/systemd/README.md)。工作流需要已有 Linux 主机和私有配置，不会自动提供服务器。师生实际操作见[使用指南](docs/user-guide.md)。
+

@@ -17,7 +17,7 @@ from storage.backends import StorageError
 from storage.previews import prepare_preview, queue_preview
 from storage.services import file_response
 from .models import CoursePublication, Material
-from .services import StaleEdit, draft_for, edit, receive_file
+from .services import StaleEdit, draft_for, edit, preview_info, receive_file
 
 
 def publications():
@@ -104,9 +104,14 @@ def course_page(request, revision, chapter_key=None, draft=False):
     for assignment in assignments:
         by_section.setdefault(assignment.chapter_key, []).append(assignment)
     options = search_options(request)
+    rows = find_sections(revision, chapters, options)
+    if draft:
+        for _, files in rows:
+            for item in files:
+                item.preview_file, _ = preview_info(item)
     return render(request, "catalog/course.html", {
         **options, "revision": revision, "rows": [
-            (s, files, by_section.get(s.stable_key, [])) for s, files in find_sections(revision, chapters, options)],
+            (s, files, by_section.get(s.stable_key, [])) for s, files in rows],
         "teacher_groups": teacher_groups, "draft": draft,
         "file_route": "catalog_draft_file" if draft else "catalog_file",
     })
@@ -159,7 +164,8 @@ def editor(request, course_id):
                     preview = asset.output_file if asset.state == "ready" else None
                 blobs = (original, preview)
             edit(course, request.user, expected, request.POST, blobs)
-            messages.success(request, "课程已发布。" if request.POST.get("action") == "publish" else "草稿已保存。")
+            notices = {"publish": "课程已发布。", "retry_preview": "已请求重新生成预览，稍后刷新页面查看结果。"}
+            messages.success(request, notices.get(request.POST.get("action"), "草稿已保存。"))
             return redirect("catalog_editor", course_id)
         except StaleEdit:
             error, status = "草稿已被其他编辑更新。请对照最新内容，再重新提交。", 409
@@ -167,7 +173,12 @@ def editor(request, course_id):
             error, status = ("；".join(exc.messages) if isinstance(exc, ValidationError) else "请检查草稿版本和输入。"), 400
         except StorageError:
             error, status = "存储暂不可用，本次资料未绑定。请重试。", 503
-    return render(request, "catalog/edit.html", {"rev": draft_for(course), "error": error,
+    revision = draft_for(course)
+    sections = list(revision.sections.prefetch_related("materials__original_file", "materials__preview_file"))
+    for section in sections:
+        for item in section.materials.all():
+            item.preview_file, item.preview_state = preview_info(item)
+    return render(request, "catalog/edit.html", {"rev": revision, "sections": sections, "error": error,
         "submitted": request.POST if status != 200 else {}}, status=status)
 
 
@@ -184,6 +195,8 @@ def serve(request, course_id, key, blob, mode, draft=False):
     item = get_object_or_404(Material.objects.select_related("original_file", "preview_file"),
                              section__revision=revision, stable_key=key)
     record = item.preview_file if mode == "preview" else item.original_file
+    if draft and mode == "preview" and not record:
+        record, _ = preview_info(item)
     if not record or record.pk != blob:
         raise Http404
     try:

@@ -1,0 +1,12 @@
+[Unit]
+Description=Create a daily private Racheltoolkit snapshot
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=5min
+Unit=racheltoolkit-backup.service
+
+[Install]
+WantedBy=timers.target
+

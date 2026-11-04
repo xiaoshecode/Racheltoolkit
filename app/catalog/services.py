@@ -11,7 +11,7 @@ from django.utils import timezone
 from pypdf import PdfReader
 
 from school.permissions import editable_courses
-from storage.previews import RENDERER
+from storage.previews import RENDERER, queue_preview
 from storage.services import ensure_written, reserve
 from .models import CoursePublication, CourseRevision, Material, Section
 
@@ -39,6 +39,18 @@ def text_field(value, label, limit, *, required=True):
 
 def next_position(objects):
     return (objects.aggregate(last=Max("position"))["last"] or 0) + 1
+
+
+def preview_info(item):
+    """Resolve a generated draft preview without changing the published revision."""
+    if item.preview_file_id:
+        return item.preview_file, "ready" if item.preview_file.state == "ready" else "failed"
+    asset = item.original_file.previews.filter(
+        renderer_version=RENDERER, source_sha256=item.original_file.sha256
+    ).select_related("output_file").first()
+    if asset and asset.state == "ready" and asset.output_file_id and asset.output_file.state == "ready":
+        return asset.output_file, "ready"
+    return None, asset.state if asset else "missing"
 
 
 def receive_file(upload, *, pdf_only=False):
@@ -139,6 +151,12 @@ def edit(course, user, expected, fields, blobs=None):
         section.delete()
     elif action == "remove":
         get_object_or_404(section.materials, stable_key=fields.get("material") or None).delete()
+    elif action == "retry_preview":
+        item = get_object_or_404(section.materials.select_related("original_file"),
+                                 stable_key=fields.get("material") or None)
+        if item.preview_file_id or item.original_file.state != "ready":
+            raise ValidationError("此资料无需重新生成预览，请刷新页面核对。")
+        queue_preview(item.original_file, retry=True)
     elif action == "upload" and blobs:
         original, preview = blobs
         if fields.get("material"):

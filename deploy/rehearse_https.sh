@@ -7,11 +7,15 @@ trap 'docker compose --env-file .env down --volumes || true' EXIT
 umask 077
 mkdir -p .local
 sudo install -d -o 10001 -g 10001 -m 0700 "$PWD/.local/host-data" "$PWD/.local/independent-backup"
+field_backup="${RUNNER_TEMP:?}/teaching-backup-${GITHUB_RUN_ID:?}"
+sudo install -d -o 10001 -g 10001 -m 0700 "$field_backup"
 printf 'TEACH_RELEASE=rehearsal\nTEACH_HOST=teaching.test\nTEACH_STORAGE_BACKEND=seafile\nSEAFILE_BASE_URL=https://seafile.test\nSEAFILE_LIBRARY_ID=fixture\nSEAFILE_REPO_TOKEN=unused-synthetic-value\nDJANGO_SECRET_KEY=%s\n' "$(openssl rand -hex 48)" > .env
 printf 'COMPOSE_FILE=compose.yml:compose.host-data.yml:.local/portal.yml\nTEACH_PORTAL_ORIGIN=https://portal.test\nTEACH_PERSIST_DIR=%s\n' "$PWD/.local/host-data" >> .env
+printf 'TEACH_BACKUP_DIR=%s\n' "$field_backup" >> .env
 # Use Caddy's private CA in CI only. Production obtains its certificate through ACME.
-sed -i '1a\    tls internal' Caddyfile
-cat >> Caddyfile <<'EOF'
+cp Caddyfile .local/Caddyfile
+sed -i '1a\    tls internal' .local/Caddyfile
+cat >> .local/Caddyfile <<'EOF'
 portal.test {
     tls internal
     root * /srv/portal
@@ -24,9 +28,11 @@ cat > .local/portal.yml <<'EOF'
 services:
   https:
     volumes:
-      - ../portal:/srv/portal:ro
+      - ./.local/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./.local/portal:/srv/portal:ro
 EOF
-printf '{"origin":"https://teaching.test"}\n' > ../portal/config.json
+cp -r ../portal .local/portal
+printf '{"origin":"https://teaching.test"}\n' > .local/portal/config.json
 printf '\n127.0.0.1 teaching.test portal.test\n' | sudo tee -a /etc/hosts >/dev/null
 docker compose --env-file .env up -d --build
 for attempt in $(seq 1 45); do
@@ -41,6 +47,14 @@ done
 curl_ci https://teaching.test/health/ | grep -q '"ok"'
 curl_ci https://teaching.test/static/school.css | grep -q 'box-sizing'
 docker compose exec -T web python app/manage.py shell -c 'from school.models import Term; Term.objects.create(code="restart-sentinel")'
+(
+    cd ..
+    SSL_CERT_FILE="$PWD/deploy/.local/fixture-ca.pem" NO_PROXY="portal.test,teaching.test" \
+        python3 deploy/release.py "$GITHUB_SHA"
+)
+test "$(cat ../.local/current-release)" = "$GITHUB_SHA"
+test ! -f ../.local/deploy-incomplete
+sudo find "$field_backup" -name manifest.json | grep -q manifest.json
 docker compose restart web
 for attempt in $(seq 1 25); do
     if curl_ci https://teaching.test/api/public/courses/ | grep -q courses; then break; fi

@@ -1,0 +1,12 @@
+[Unit]
+Description=Check Racheltoolkit preview queue after each completed batch
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=1min
+AccuracySec=10s
+Unit=racheltoolkit-previews.service
+
+[Install]
+WantedBy=timers.target
+

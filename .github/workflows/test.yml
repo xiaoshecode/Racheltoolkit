@@ -16,4 +16,6 @@ jobs:
       - run: python app/manage.py migrate
       - run: python app/manage.py migrate --check
       - run: python app/manage.py test
+      - run: python -m unittest discover -s deploy/tests -v
+      - run: systemd-analyze verify deploy/systemd/*.service deploy/systemd/*.timer
 

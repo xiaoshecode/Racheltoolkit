@@ -1,0 +1,20 @@
+[Unit]
+Description=Snapshot Racheltoolkit database and private file versions
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+RequiresMountsFor=/srv/teaching-space /srv/teaching-backups
+ConditionPathExists=!/srv/teaching-space/.local/deploy-incomplete
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/srv/teaching-space
+EnvironmentFile=/etc/racheltoolkit/backup.env
+Environment=DOCKER_HOST=unix:///var/run/docker.sock
+ExecStart=/usr/bin/flock -w 55 /srv/teaching-space/.local/deploy.lock /bin/sh /srv/teaching-space/deploy/systemd/guard-maintenance.sh backup
+TimeoutStartSec=6h
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+

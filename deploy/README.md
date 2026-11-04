@@ -41,6 +41,33 @@ python deploy/verify_entrypoints.py --teaching-origin https://已验证的教学
 
 脚本匿名读取真实 Pages 页面、资源和配置，并要求其中的教学站与操作者指定的地址一致。它用系统信任链校验 HTTPS，检查健康页、允许及拒绝的跨域来源、已发布章节链接，以及匿名访问个人页的登录跳转。退出码 0 表示公开入口检查通过；1 表示检查失败；2 表示尚缺教学站地址或已发布的合成章节。现场另行核对合成课件的原件哈希、登录后的 A/B/J 教学闭环、云盘读写及重启后数据。日志仅保留检查结果。
 
+## 从 GitHub 发起后端发布
+
+仓库的 **Deploy teaching host** 工作流可从 Actions 手动运行，只接受 `main`。它先运行应用与部署回归，再通过校验主机公钥的 SSH 发布本次完整 SHA。推送 `main` 仍只自动更新 Pages；新增工作流不会创建或购买服务器。
+
+主机首次准备按前述章节完成：稳定检出到 `/srv/teaching-space`，安装 Python 3.13、Git、Docker Compose；配置域名与私有 `deploy/.env`，建立独立备份目录。`.env` 的 `TEACH_BACKUP_DIR` 指向该目录。程序默认使用 `/data/school.sqlite3`，已有数据必须继续使用原 Compose 项目名及数据卷。采用宿主预览进程时，在第一次部署就选择 `compose.host-data.yml`，再按 [systemd 运维说明](systemd/README.md) 配置专用账号、rootless 转换、共同发布锁及定时器。Django 密钥、云盘令牌留在主机，不上传到 Actions。
+
+在 GitHub 仓库的 `teaching-production` Environment 中配置：
+
+| 类型 | 名称 | 内容 |
+| --- | --- | --- |
+| Variable | `DEPLOY_HOST` | 教学主机 DNS 名称或 IPv4，SSH 使用 22 端口 |
+| Variable | `DEPLOY_USER` | 已有部署账号，具有源码、Compose 及运维定时器的管理权限；随仓库模板使用 root |
+| Variable | `DEPLOY_PATH` | 主机固定检出根目录，如 `/srv/teaching-space` |
+| Variable | `TEACH_ORIGIN` | 教学站的 HTTPS 地址，仅作本次部署链接 |
+| Secret | `DEPLOY_SSH_KEY` | 上述账号的专用 SSH 私钥 |
+| Secret | `DEPLOY_KNOWN_HOSTS` | 经主机控制台核对指纹的完整 OpenSSH known_hosts 条目 |
+
+不要在工作流里用未经核对的 `ssh-keyscan` 输出代替主机身份验证。源码目录必须干净；私有 `.env`、数据和 `.local` 均保持 Git 忽略。部署不会覆盖本地改动。工作流通过环境变量接收配置，并限制 SSH 目标和路径字符，避免将输入当作脚本执行。参见 [GitHub 脚本输入说明](https://docs.github.com/en/actions/concepts/security/script-injections) 和 [Compose 项目名与卷隔离](https://docs.docker.com/compose/how-tos/project-name/)。
+
+`release.py` 与预览、定时备份共用 `.local/deploy.lock`：确认 SHA 属于远端 main，构建候选镜像并运行生产检查，停止旧 web，用**旧镜像、旧环境、旧数据卷**写出独立快照后才迁移。它拒绝更换数据卷、数据库位置或私有资料库；仅更换令牌可以正常发布。如果找不到旧容器却发现已有数据库，必须先按人工恢复流程接回旧容器，不能跳过快照。
+
+发布通过可信 HTTPS 健康检查后，原子更新私有 `.env` 的 `TEACH_RELEASE`、记录 `.local/current-release`，恢复已启用的定时器并清除维护标记。后续备份和手工 Compose 操作会继续使用同一镜像。全新服务器仍需建立管理员、班级、课程和名册，并完成专用云盘读写及真实双入口检查；健康页成功不等于试教签收。服务器上也可从检出根目录直接运行 `python3 deploy/release.py 完整40位SHA`。
+
+**失败处理：** 迁移开始之前失败，程序恢复原代码并重启已停止的旧容器。迁移开始之后失败，保持 web 停止及 `.local/deploy-incomplete` 标记，预览和定时备份不会继续写入。它不会自动恢复旧数据库或丢弃新提交。此时先从主机私下检查失败命令，保全当前数据库和文件；按后文的隔离恢复流程确认迁移状态，修复后在同一锁下完成剩余迁移、启动及 HTTPS 检查。确认库版本、回执、附件、生产镜像与 `.env` 一致后，才由维护者移除标记并重启定时器。不要用删除标记来绕过未查明的失败。
+
+后端验收通过后，把 HTTPS 地址同时设置为**仓库级** `TEACH_ORIGIN`（Pages 使用仓库变量，不读取 teaching-production 的环境变量），重新运行 **Public portal**，再执行 `verify_entrypoints.py`。账户、成绩和文件始终保存在后端，公开发布包仍只含 `portal/`。
+
 ## 收件对账
 
 `python app/manage.py reconcile_submissions` 列出未完成版本。加 `--repair` 检查云端大小及哈希，只在全部文件确认后签发回执。云端明确缺页时，学生可用原清单和原编号重试。只有操作员已核实旧执行者及远端上传均结束时，才对指定提交加 `--submission UUID --writer-stopped --repair`；冲突文件保持隔离。

@@ -1,0 +1,27 @@
+[Unit]
+Description=Render Racheltoolkit private document previews
+Wants=network-online.target user@10001.service
+After=network-online.target user@10001.service
+RequiresMountsFor=/srv/teaching-space /srv/teaching-data
+ConditionPathExists=!/srv/teaching-space/.local/deploy-incomplete
+
+[Service]
+Type=oneshot
+User=teacher
+Group=teacher
+WorkingDirectory=/srv/teaching-space
+EnvironmentFile=/srv/teaching-space/deploy/.env
+EnvironmentFile=/etc/racheltoolkit/worker.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/usr/bin/test -S /run/user/10001/docker.sock
+ExecStartPre=/usr/bin/test -w /srv/teaching-data/school.sqlite3
+ExecStart=/usr/bin/flock -w 55 /srv/teaching-space/.local/deploy.lock /bin/sh /srv/teaching-space/deploy/systemd/guard-maintenance.sh previews
+TimeoutStartSec=1h
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/srv/teaching-data /srv/teaching-space/.local/deploy.lock
+

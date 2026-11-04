@@ -16,6 +16,7 @@ from pypdf import PdfWriter
 
 from school.models import Course, CourseEditor, Enrollment, TeachingAssignment, TeachingClass, Term
 from storage.backends import LocalBackend, StorageUnavailable
+from storage.previews import prepare_preview
 from submissions.models import Assignment
 from .models import CoursePublication
 from .services import draft_for, published_chapter_exists
@@ -135,6 +136,53 @@ class CoursePublicationTests(TestCase):
         self.post("publish",status=400)
         self.assertEqual(CoursePublication.objects.get(course=self.course).revision.seq,1)
         self.assertNotContains(self.client.get(self.course_url),"f.pptx")
+
+    def test_generated_course_preview_is_available_to_editor_before_publication(self):
+        self.post("add_section", title="自动预览")
+        section = draft_for(self.course).sections.get().stable_key
+        self.post("upload", section=section, original=SimpleUploadedFile("slides.pptx", slides("<p/>")))
+        item = draft_for(self.course).sections.get().materials.get()
+        with patch("storage.previews.convert_office", return_value=pdf()):
+            asset = prepare_preview(item.original_file)
+        self.assertEqual(asset.state, "ready")
+        draft_url = reverse("catalog_draft_file", args=[self.course.pk, item.stable_key,
+                                                       asset.output_file_id, "preview"])
+        self.assertContains(self.client.get(self.editor), "预览已就绪")
+        preview = self.client.get(reverse("catalog_preview", args=[self.course.pk]))
+        self.assertContains(preview, draft_url)
+        self.assertEqual(b"".join(self.client.get(draft_url).streaming_content), pdf())
+        item.refresh_from_db()
+        self.assertIsNone(item.preview_file_id)
+        self.assertFalse(CoursePublication.objects.filter(course=self.course).exists())
+        self.client.force_login(self.a)
+        self.assertEqual(self.client.get(draft_url).status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(draft_url).status_code, 404)
+        self.client.force_login(self.teacher)
+        self.post("publish")
+        public_url = reverse("catalog_file", args=[self.course.pk, item.stable_key,
+                                                   asset.output_file_id, "preview"])
+        self.assertEqual(b"".join(self.client.get(public_url).streaming_content), pdf())
+
+    def test_course_preview_failure_can_retry_without_changing_published_course(self):
+        self.post("add_section", title="已发布内容")
+        self.post("publish")
+        section = draft_for(self.course).sections.get().stable_key
+        self.post("upload", section=section, original=SimpleUploadedFile("slides.pptx", slides("<p/>")))
+        item = draft_for(self.course).sections.get().materials.get()
+        with patch("storage.previews.convert_office", side_effect=RuntimeError("conversion failed")):
+            asset = prepare_preview(item.original_file)
+        self.assertEqual(asset.state, "failed")
+        self.assertContains(self.client.get(self.editor), "预览生成失败")
+        previous = draft_for(self.course).edit_version
+        self.post("retry_preview", section=section, material=item.stable_key)
+        asset.refresh_from_db()
+        self.assertEqual(asset.state, "pending")
+        self.assertEqual(CoursePublication.objects.get(course=self.course).revision.seq, 1)
+        self.assertNotContains(self.client.get(self.course_url), "slides.pptx")
+        self.post("retry_preview", section=section, material=item.stable_key, version=previous, status=409)
+        self.client.force_login(self.a)
+        self.post("retry_preview", section=section, material=item.stable_key, status=404)
 
     def test_t12_stable_chapter_and_scoped_assignment(self):
         self.post("add_section", title="共享章")
