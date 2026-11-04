@@ -1,6 +1,5 @@
 import importlib.util
 import json
-import os
 from pathlib import Path
 import sys
 import tempfile
@@ -55,6 +54,9 @@ class ConfigurationTests(Fixture, unittest.TestCase):
         old["Config"]["Env"] = ["TEACH_DB=/data/other.sqlite3"]
         with self.assertRaises(release.ReleaseError):
             release.verify_data_mount(self.config, old)
+        old["Config"]["Env"] = ["TEACH_DATA_DIR=/data/other"]
+        with self.assertRaises(release.ReleaseError):
+            release.verify_data_mount(self.config, old)
 
     def test_named_volume_identity_must_match(self):
         self.config["services"]["web"]["volumes"][0] = {"type": "volume", "source": "teaching-data", "target": "/data"}
@@ -88,6 +90,18 @@ class ConfigurationTests(Fixture, unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == "linux", "Real flock is tested on Linux CI")
 class UpgradeFailureTests(Fixture, unittest.TestCase):
+    def test_running_maintenance_blocks_release_before_fetch_or_checkout(self):
+        import fcntl
+        runtime = self.root / ".local"
+        runtime.mkdir()
+        with (runtime / "deploy.lock").open("a") as held:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            with patch.object(release, "run", return_value=str(self.root)) as command:
+                with self.assertRaisesRegex(release.ReleaseError, "Another deployment"):
+                    release.deploy(self.root, SHA)
+                self.assertEqual(command.call_count, 1)
+        self.assertFalse((runtime / "deploy-incomplete").exists())
+
     def simulate(self, *, failed_stage=None, has_container=True, existing_database=False):
         working = self.root / "deploy"
         working.mkdir()

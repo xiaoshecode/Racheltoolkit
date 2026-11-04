@@ -12,7 +12,7 @@
 | 预览容器运行时 | `unix:///run/user/10001/docker.sock` | `teacher` 自己的 rootless Docker；不使用 web 容器内的 Docker，也不把 socket 挂到 web |
 | 备份目录 | `/srv/teaching-backups` | 已挂载独立的私有存储，目录对 UID 10001 可写 |
 | 私有配置 | `deploy/.env`、`/etc/racheltoolkit/*.env` | root 可读；文件不得公开或加入 Git |
-| 发布互斥锁 | `/srv/teaching-space/.local/deploy.lock` | 预先创建，`teacher:teacher`、0600；父目录 0700 且 teacher 可进入，发布账号也必须有访问权限 |
+| 发布互斥锁 | `/srv/teaching-space/.local/deploy.lock` | 文件为 `teacher:teacher`、0600；父目录为 `root:teacher`、0750，worker 可进入并加锁，但不能替换维护标记或锁文件 |
 
 已有命名卷中的数据不能通过修改 Compose 配置直接切到空宿主目录。应先备份、隔离恢复并核对，再迁移到约定路径。模板中的路径、UID、用户名和运行时 socket 必须作为一组修改。
 
@@ -21,8 +21,9 @@ web 使用主机的普通 Docker daemon。只有预览账号使用 rootless daem
 在首次部署时准备空的锁文件；已有文件时仅核对权限，不删除或替换正在使用的锁文件。root 执行发布和备份，预览进程以 UID 10001 执行，三者通过同一个 `flock` 文件互斥。若发布账号不是 root，应调整明确的共享组权限并同步模板，不能让发布与 worker 使用不同锁。
 
 ```sh
-sudo install -d -o teacher -g teacher -m 0700 /srv/teaching-space/.local
-sudo -u teacher touch /srv/teaching-space/.local/deploy.lock
+sudo install -d -o root -g teacher -m 0750 /srv/teaching-space/.local
+sudo touch /srv/teaching-space/.local/deploy.lock
+sudo chown teacher:teacher /srv/teaching-space/.local/deploy.lock
 sudo chmod 0600 /srv/teaching-space/.local/deploy.lock
 ```
 

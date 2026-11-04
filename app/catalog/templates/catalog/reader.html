@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{{ item.title }} · PDF 阅读{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'catalog/reader.css' %}">{% endblock %}
+{% block content %}
+<nav class="eyebrow" aria-label="资料位置"><a href="{{ back_url }}">{% if draft %}返回课程草稿{% else %}返回本章资料{% endif %}</a></nav>
+<h1>{{ item.title }}</h1>
+<p class="reader-file">{{ item.original_file.original_name }}{% if draft %} · 教师草稿预览{% endif %}</p>
+<section id="course-reader" class="course-reader" data-source="{{ source_url }}" aria-label="PDF 阅读器">
+  <div class="reader-tools" role="group" aria-label="阅读控制">
+    <button type="button" data-action="prev" disabled>上一页</button>
+    <span id="reader-pages" aria-live="polite">—</span>
+    <button type="button" data-action="next" disabled>下一页</button>
+    <button type="button" data-action="zoom-out" disabled>缩小</button>
+    <button type="button" data-action="zoom-in" disabled>放大</button>
+    <button type="button" data-action="fit" disabled>适合宽度</button>
+    <button type="button" data-action="rotate" disabled>旋转 90°</button>
+    <a href="{{ download_url }}">下载原件</a>
+  </div>
+  <p id="reader-status" role="status">正在加载 PDF，请稍候……</p>
+  <p id="reader-recovery" hidden>可重新加载预览，或下载原件查看。<button type="button" id="reader-retry">重新加载</button></p>
+  <div class="reader-scroll" tabindex="0" aria-label="PDF 页面，可滚动查看放大的内容" hidden><canvas aria-label="PDF 当前页"></canvas></div>
+  <noscript><p>在线阅读需要启用 JavaScript。可通过“下载原件”保存资料查看。</p></noscript>
+</section>
+{% endblock %}
+{% block scripts %}<script type="module" src="{% static 'catalog/reader.js' %}"></script>{% endblock %}

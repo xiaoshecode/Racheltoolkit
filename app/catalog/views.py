@@ -199,6 +199,14 @@ def serve(request, course_id, key, blob, mode, draft=False):
         record, _ = preview_info(item)
     if not record or record.pk != blob:
         raise Http404
+    if mode == "preview" and request.GET.get("reader") == "1":
+        route = "catalog_draft_file" if draft else "catalog_file"
+        return render(request, "catalog/reader.html", {
+            "item": item, "draft": draft, "source_url": request.path,
+            "back_url": reverse("catalog_preview", args=[course_id]) if draft else reverse(
+                "catalog_chapter", args=[course_id, item.section.stable_key]),
+            "download_url": reverse(route, args=[course_id, key, item.original_file_id, "download"]),
+        })
     try:
         return file_response(record, inline=mode == "preview")
     except StorageError:

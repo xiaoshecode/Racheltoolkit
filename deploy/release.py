@@ -78,7 +78,8 @@ def verify_data_mount(config, previous):
     else:
         matches = existing["Type"] == "bind" and Path(desired["source"]).resolve() == Path(existing["Source"]).resolve()
     old_env = dict(entry.split("=", 1) for entry in previous["Config"]["Env"])
-    if not matches or old_env.get("TEACH_DB", "/data/school.sqlite3") != "/data/school.sqlite3":
+    if (not matches or old_env.get("TEACH_DATA_DIR", "/data") != "/data"
+            or old_env.get("TEACH_DB", "/data/school.sqlite3") != "/data/school.sqlite3"):
         raise ReleaseError("Data location changed; migrate and verify it manually before deploying")
     new_env = config["services"]["web"].get("environment", {})
     for key in ("SEAFILE_LIBRARY_ID", "SEAFILE_BASE_URL"):
