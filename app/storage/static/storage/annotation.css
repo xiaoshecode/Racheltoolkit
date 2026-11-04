@@ -1,5 +1,5 @@
-.annotation {border:1px solid #bdceca;border-radius:.8rem;background:#fff;padding:clamp(.7rem,2vw,1.4rem);min-width:0}
-.annotation header,.annotation-nav,.annotation-tools,#anno-textbox{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+.annotation {border:1px solid var(--line,#bdceca);border-radius:.25rem;background:#fff;padding:clamp(.7rem,2vw,1.4rem);min-width:0}
+.annotation header,.annotation-nav,.annotation-tools,.annotation-tool-group,#anno-textbox{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
 .annotation header {justify-content:space-between}
 .annotation small {color:#33645d;font-weight:700;letter-spacing:.13em}
 .annotation h2 {margin:.2em 0 .5em;font-size:1.35rem}
@@ -8,7 +8,7 @@
 .annotation-nav label {min-width:0;max-width:100%}
 .annotation select {max-width:100%}
 .annotation-tools {margin:.65em 0}
-.annotation button {background:#f7faf8;color:#164d47;border:1px solid #b4cbc5;border-radius:.4em;padding:.45em .7em;min-height:36px;cursor:pointer}
+.annotation button {background:#f7faf8;color:#164d47;border:1px solid #b4cbc5;border-radius:.25em;padding:.45em .7em;min-height:44px;cursor:pointer;font-size:.85rem}
 .annotation button[aria-pressed="true"] {background:#164f47;color:white}
 .annotation button:disabled {opacity:.45;cursor:default}
 .annotation [hidden] {display:none!important}
@@ -19,6 +19,17 @@
 .anno-plane svg {position:absolute;inset:0}
 .annotation[data-editable="true"] svg {cursor:crosshair;touch-action:none}
 .anno-access {margin:.65em 0}
+.anno-access summary {min-height:44px;cursor:pointer;font-size:.9rem}
+.annotation-nav label {display:grid;gap:.35rem;font-size:.85rem;flex:1}
+.annotation-nav select {width:100%;min-width:0}
+.annotation-nav a {display:inline-flex;min-height:44px;align-items:center;font-size:.85rem}
+.annotation-tools {gap:.65rem 1rem}
+.annotation-tool-group {gap:.35rem}
+.annotation-tool-label {font-size:.8rem;font-weight:650;color:var(--muted,#60716a)}
+.annotation-pens {padding-top:.65rem;border-top:1px solid var(--line,#d5ddd5)}
+#anno-pages {font-variant-numeric:tabular-nums;min-width:3.5rem;text-align:center;font-size:.85rem}
+.review-layout .anno-scroll {max-height:calc(100vh - 22rem);min-height:16rem}
 #anno-status,.anno-hint {font-size:.9em;color:#365752}
 .annotation :focus-visible {outline:3px solid #b65320;outline-offset:2px}
-@media(max-width:480px){.annotation select{display:block}.annotation-nav a{font-size:.9em}}
+@media(max-width:60rem){.review-layout .anno-scroll{max-height:65vh}}
+@media(max-width:480px){.annotation select{display:block}.annotation-nav a{font-size:.9em}.annotation-tools{gap:.5rem}.annotation-tool-group{width:100%}.annotation-pens button{padding-inline:.55rem}.anno-access summary{font-size:.85rem}}

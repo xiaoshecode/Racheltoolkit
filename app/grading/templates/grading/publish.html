@@ -1,13 +1,17 @@
 {% extends "grading/base.html" %}{% block title %}成绩发布预览{% endblock %}{% block sheet %}
-<p>{{ task.teaching_class }}</p><h1>发布《{{ task.title }}》成绩</h1>
-<p class="record-meta"><span class="state">已评分 {{ pending }} 人</span>未评分 {{ ungraded }} 人 · 各按每位学生的最新收件计数</p>
+<a class="grading-back" href="/assignments/{{ task.pk }}/">← 返回作业</a>
+<header class="page-heading"><div><p class="eyebrow">{{ task.teaching_class }} / 成绩发布</p><h1>发布《{{ task.title }}》成绩</h1><p>先核对学生、提交版本与草稿修订，再发布本批分数。</p></div></header>
+<dl class="grading-context"><div><dt>已评分</dt><dd>{{ pending }} 人</dd></div><div><dt>未评分</dt><dd>{{ ungraded }} 人</dd></div><div><dt>作业满分</dt><dd>{{ task.max_points }} 分</dd></div><div><dt>作业截止 · 北京</dt><dd>{{ task.due_at|date:"Y-m-d H:i" }}</dd></div></dl>
+<p class="record-meta">已评分 / 未评分人数按每位学生的最新成功收件计数；下方保留所有成功提交的版本，便于核对。</p>
+<div class="publication-note"><strong>本次发布分数</strong><p>评语、页上批注及错题还需本班公布对应标准答案后才向学生显示。<a href="{% url 'grading:teacher_answers' task.pk %}">管理标准答案 →</a></p></div>
 <form id="publish-cohort" method="post">{% csrf_token %}<input name="request_key" type="hidden" value="{{ request_key }}">
-<h2>选择要公布的提交版本</h2><p>每名学生可选择一个版本，勾选后核对得分和草稿修订号。</p>
-<ul class="publish-list">{% for sub in submissions %}<li>{% if sub.grade_draft %}<label><input type="checkbox" name="draft" value="{{ sub.pk }}:{{ sub.grade_draft.edit_version }}"><span><b>{{ sub.student.first_name|default:"学生" }}</b>（{{ sub.student.username }}） · V{{ sub.version }}<br>{{ sub.grade_draft.score }}/{{ task.max_points }} · 草稿 R{{ sub.grade_draft.edit_version }}</span></label>{% else %}<span>{{ sub.student.first_name|default:"学生" }}（{{ sub.student.username }}） V{{ sub.version }} · 待批</span>{% endif %} <a href="{% url 'grading:review' sub.pk %}">批阅此版</a></li>{% empty %}<li>暂无成功收件。</li>{% endfor %}</ul>
-<p id="selected-count" role="status"></p>
-<button>确认发布所选成绩</button></form>{% endblock %}
+<h2>选择要公布的提交版本</h2><p class="record-meta">每名学生可选择一个版本，勾选后核对得分和草稿修订号。</p>
+<div class="publication-scroll" tabindex="0" role="region" aria-label="成绩发布名单，可横向滚动"><table class="publication-table"><thead><tr><th scope="col">选择 / 学生</th><th scope="col">提交版本</th><th scope="col">分数 / 满分</th><th scope="col">批阅状态</th><th scope="col">操作</th></tr></thead><tbody>
+{% for sub in submissions %}<tr><th scope="row">{% if sub.grade_draft %}<label><input type="checkbox" name="draft" data-student="{{ sub.student_id }}" value="{{ sub.pk }}:{{ sub.grade_draft.edit_version }}" aria-label="发布 {{ sub.student.first_name|default:sub.student.username }} 的 V{{ sub.version }} 成绩"><span>{{ sub.student.first_name|default:"学生" }}<small>{{ sub.student.username }}</small></span></label>{% else %}<span class="ungraded-name">{{ sub.student.first_name|default:"学生" }}<small>{{ sub.student.username }}</small></span>{% endif %}</th><td>V{{ sub.version }}</td><td class="publication-score">{% if sub.grade_draft %}{{ sub.grade_draft.score }} <span>/ {{ task.max_points }}</span>{% else %}—{% endif %}</td><td>{% if sub.grade_draft %}<span class="status-pill">草稿 R{{ sub.grade_draft.edit_version }}</span>{% else %}<span class="status-pill">待批</span>{% endif %}</td><td><a href="{% url 'grading:review' sub.pk %}" aria-label="批阅 {{ sub.student.first_name|default:sub.student.username }} 的 V{{ sub.version }}">批阅此版</a></td></tr>{% empty %}<tr><td colspan="5" class="empty-state">暂无成功收件。</td></tr>{% endfor %}
+</tbody></table></div>
+<div class="publication-actions"><div><p id="selected-count" role="status" aria-live="polite"></p><p class="record-meta">确认后，所选学生即可在个人成绩中查看本次发布的分数。</p></div><button id="publish-selected">确认发布所选成绩</button></div></form>{% endblock %}
 {% block scripts %}{{ block.super }}<script>
 const form=document.getElementById('publish-cohort');
-function countSelections(){document.getElementById('selected-count').textContent='本批已选择 '+form.querySelectorAll('input[name="draft"]:checked').length+' 个版本';}
-form.addEventListener('change',countSelections);countSelections();
+function countSelections(){const count=form.querySelectorAll('input[name="draft"]:checked').length;document.getElementById('selected-count').textContent='本批已选择 '+count+' 个版本';document.getElementById('publish-selected').disabled=count===0;}
+form.addEventListener('change',event=>{const chosen=event.target;if(chosen.name==='draft'&&chosen.checked){for(const box of form.querySelectorAll('input[name="draft"]')){if(box!==chosen&&box.dataset.student===chosen.dataset.student)box.checked=false;}}countSelections();});countSelections();
 </script>{% endblock %}

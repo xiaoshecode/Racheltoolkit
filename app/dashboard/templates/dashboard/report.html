@@ -1,11 +1,64 @@
-{% extends "base.html" %}{% load static %}{% block title %}班级成绩册 · {{ group.code }}{% endblock %}{% block head %}<link rel="stylesheet" href="{% static 'dashboard/report.css' %}">{% endblock %}
-{% block content %}<p class="eyebrow">教师工作区 / {{ group.term.code }} · {{ group.course.title }}</p><h1>班级成绩册</h1>
-<form class="actions" method="get"><label>查看班级 <select name="class">{% for g in groups %}<option value="{{ g.pk }}" {% if group.pk == g.pk %}selected{% endif %}>{{ g }}</option>{% endfor %}</select></label><button>切换班级</button></form>
-<form class="panel filters" method="get"><input type="hidden" name="class" value="{{ group.pk }}"><label>姓名或完整学号<input name="q" maxlength="160" value="{{ filters.q }}" placeholder="支持同名检索"></label>
-<label>作业<select name="assignment"><option value="">全部作业</option>{% for work in choices %}<option value="{{ work.pk }}" {% if filters.assignment == work.pk|stringformat:"s" %}selected{% endif %}>{{ work.title }}</option>{% endfor %}</select></label><label>当前状态<select name="status"><option value="">全部状态</option>{% for value,label in statuses.items %}<option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><button>筛选</button><a href="?class={{ group.pk }}">清除筛选</a></form>
-<p class="actions"><strong>{{ page.paginator.count }} 名学生</strong><a href="{% url 'teacher_gradebook_csv' %}?{{ querystring }}">导出当前筛选全部页 CSV</a><a href="/teacher/classes/{{ group.pk }}/assignments/new/">布置作业</a></p>
-<details><summary>状态说明</summary><p>未交、已交待批、草稿待发布和已发布分别列出。重交或改分期间仍显示最近已公布的成绩及其版本。</p></details>
-<div class="matrix" role="region" aria-label="班级成绩矩阵，可横向滚动" tabindex="0"><table><caption>{{ group.code }} · 当前筛选学生与作业</caption><thead><tr><th scope="col">学生 / 学号</th>{% for c in columns %}<th scope="col"><a href="/assignments/{{ c.task.pk }}/">{{ c.task.title }} · 查看本次作业</a><small>满分 {{ c.task.max_points }} · 截止 {{ c.task.due_at|date:"m-d H:i" }}</small></th>{% endfor %}</tr></thead><tbody><tr class="summary"><th scope="row">全班平均</th>{% for c in columns %}<td>{% if c.count %}{{ c.mean }}/{{ c.task.max_points }} · {{ c.percent }}%<small>计入 {{ c.count }} 人</small>{% else %}暂无已发布成绩{% endif %}</td>{% endfor %}</tr>
-{% for row in page %}<tr id="student-{{ row.student.pk }}"><th scope="row"><a href="{% url 'teacher_student_detail' row.student.pk %}?{{ back_query }}">{{ row.student.first_name|default:row.student.username }}</a><small>{{ row.student.username }}</small></th>
-{% for cell in row.cells %}<td class="{{ cell.status }}"><strong>{{ cell.label }}</strong>{% if cell.receipt %} · V{{ cell.receipt.version }}{% endif %}{% if cell.grade %}<small>公布 {{ cell.score }}/{{ cell.grade.max_points }} · V{{ cell.grade.submission.version }}</small>{% endif %}</td>{% endfor %}</tr>{% empty %}<tr><td>没有符合条件的学生。<a href="?class={{ group.pk }}">清除筛选</a></td></tr>{% endfor %}</tbody></table></div>
-<nav aria-label="成绩册分页">{% if page.has_previous %}<a href="?{{ querystring }}&amp;page={{ page.previous_page_number }}">上一页</a>{% endif %}<span>第 {{ page.number }} / {{ page.paginator.num_pages }} 页</span>{% if page.has_next %}<a href="?{{ querystring }}&amp;page={{ page.next_page_number }}">下一页</a>{% endif %}</nav>{% endblock %}
+{% extends "base.html" %}
+{% load static %}
+{% block title %}班级成绩册 · {{ group.code }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'dashboard/report.css' %}?v=20261104-ui">{% endblock %}
+{% block content %}
+<header class="page-heading gradebook-heading">
+  <div><p class="eyebrow">教学工作台 / 成绩册</p><h1>班级成绩册</h1><p class="muted">沿一列看整班表现，沿一行看学生的每次作业。</p></div>
+  <a class="button" href="/teacher/classes/{{ group.pk }}/assignments/new/">布置作业</a>
+</header>
+
+<section class="gradebook-scope" aria-label="当前教学范围">
+  <div class="scope-description"><span>{{ group.term.code }}</span><strong>{{ group.course.title }}</strong><span>全班 {{ student_count }} 名学生</span></div>
+  <form class="class-switch" method="get">
+    <label for="gradebook-class">任教班级</label>
+    <div><select id="gradebook-class" name="class">{% for g in groups %}<option value="{{ g.pk }}" {% if group.pk == g.pk %}selected{% endif %}>{{ g }}</option>{% endfor %}</select><button class="button-secondary">切换班级</button></div>
+  </form>
+</section>
+
+<form class="gradebook-filters" method="get" aria-label="筛选成绩册">
+  <input type="hidden" name="class" value="{{ group.pk }}">
+  <label for="student-query">姓名或完整学号<input id="student-query" name="q" maxlength="160" value="{{ filters.q }}" placeholder="输入姓名或完整学号"></label>
+  <label for="assignment-filter">作业<select id="assignment-filter" name="assignment"><option value="">全部作业</option>{% for work in choices %}<option value="{{ work.pk }}" {% if filters.assignment == work.pk|stringformat:"s" %}selected{% endif %}>{{ work.title }}</option>{% endfor %}</select></label>
+  <label for="status-filter">当前状态<select id="status-filter" name="status"><option value="">全部状态</option>{% for value,label in statuses.items %}<option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <div class="filter-actions"><button>筛选</button><a href="?class={{ group.pk }}">清除筛选</a></div>
+</form>
+
+<section class="gradebook-results" aria-labelledby="results-heading">
+  <div class="gradebook-tools">
+    <div><h2 id="results-heading">{{ group.code }} <span>· {{ column_count }} 次作业</span></h2><p>{% if page.paginator.count %}显示 {{ page.start_index }}–{{ page.end_index }} / {{ page.paginator.count }} 名学生{% else %}没有符合条件的学生{% endif %}{% if filters.status %} · 状态筛选匹配任意一次所选作业{% endif %}</p></div>
+    <a class="button button-secondary export-link" href="{% url 'teacher_gradebook_csv' %}?{{ querystring }}">导出筛选结果 CSV <small>包含全部 {{ page.paginator.count }} 名学生</small></a>
+  </div>
+  <details class="gradebook-legend">
+    <summary>图例与统计口径 <span>绿色表示已发布得分率</span></summary>
+    <div class="legend-content">
+      <ul class="score-legend" aria-label="已发布得分率色阶"><li><i class="score-band-0" aria-hidden="true"></i>0%–不足 25%</li><li><i class="score-band-1" aria-hidden="true"></i>25%–不足 50%</li><li><i class="score-band-2" aria-hidden="true"></i>50%–不足 75%</li><li><i class="score-band-3" aria-hidden="true"></i>75%–100%</li></ul>
+      <p><strong>未交 · 已交待批 · 草稿待发布 · 已发布</strong>表示最新提交的状态。重交或改分期间，仍保留最近已公布的成绩及其版本；未交与待批不会显示为 0 分。</p>
+      <p>全班平均仅计入当前有效的已发布成绩（含 0 分），不随姓名或状态筛选变化。每列标出计入人数。</p>
+    </div>
+  </details>
+
+  {% if columns %}
+  <p class="matrix-help" id="matrix-help">左右滚动查看各次作业；姓名列保持可见。全班平均仅统计已发布成绩。</p>
+  <div class="matrix" role="region" aria-label="{{ group.code }}成绩矩阵，可横向滚动" aria-describedby="matrix-help" tabindex="0" data-restore-key="{{ back_query }}">
+    <table>
+      <caption>{{ group.term.code }} · {{ group.course.title }} · {{ group.code }} · 当前筛选学生与作业</caption>
+      <thead><tr>
+        <th scope="col" class="student-column"><span>学生</span><small>姓名 / 学号</small></th>
+        {% for c in columns %}<th scope="col" class="assignment-column"><div class="assignment-title">{{ c.task.title }}</div><a class="assignment-results" href="/assignments/{{ c.task.pk }}/" aria-label="{{ c.task.title }}：查看本次作业">查看本次作业 <span aria-hidden="true">↗</span></a><div class="assignment-meta"><strong>满分 {{ c.task.max_points }}</strong><small>布置 {{ c.task.published_at|date:"m-d H:i" }}</small><small>截止 {{ c.task.due_at|date:"m-d H:i" }}</small></div></th>{% endfor %}
+      </tr></thead>
+      <tbody>
+        <tr class="summary"><th scope="row" class="student-column">全班平均<small>已发布成绩</small></th>{% for c in columns %}<td>{% if c.count %}<strong>{{ c.mean }}/{{ c.task.max_points }} · {{ c.percent }}%</strong><small>计入 {{ c.count }} 人 / 全班 {{ student_count }} 人</small>{% else %}<span>暂无已发布成绩</span><small>计入 0 人 / 全班 {{ student_count }} 人</small>{% endif %}</td>{% endfor %}</tr>
+        {% for row in page %}<tr id="student-{{ row.student.pk }}">
+          <th scope="row" class="student-column"><a data-student-link="student-{{ row.student.pk }}" href="{% url 'teacher_student_detail' row.student.pk %}?{{ back_query }}">{{ row.student.first_name|default:row.student.username }}</a><small>{{ row.student.username }}</small></th>
+          {% for cell in row.cells %}<td class="result-cell result-{{ cell.status }}"><div class="submission-state"><span class="cell-status">{{ cell.label }}</span>{% if cell.receipt %}<small>最新提交 V{{ cell.receipt.version }}</small>{% endif %}</div>{% if cell.grade %}<div class="published-score score-band-{{ cell.score_band }}"><strong>公布 {{ cell.score }}/{{ cell.grade.max_points }} · V{{ cell.grade.submission.version }}</strong><small>得分率 {{ cell.score_percent }}%</small></div>{% else %}<p class="unpublished-score">{% if cell.receipt %}暂无已发布成绩{% else %}尚无提交记录{% endif %}</p>{% endif %}</td>{% endfor %}
+        </tr>{% empty %}<tr><td colspan="{{ table_colspan }}" class="matrix-empty">没有符合条件的学生。<a href="?class={{ group.pk }}">清除筛选，查看全班</a></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<div class="empty-state"><h3>这个班级还没有作业</h3><p>布置第一份作业后，可在这里查看收件状态与已发布成绩。</p><a class="button" href="/teacher/classes/{{ group.pk }}/assignments/new/">布置第一份作业</a>{% if filters.q or filters.status %}<a href="?class={{ group.pk }}">清除筛选</a>{% endif %}</div>{% endif %}
+
+  {% if page.paginator.count %}<nav class="gradebook-pagination" aria-label="成绩册分页"><span>第 {{ page.number }} / {{ page.paginator.num_pages }} 页 · 每页 25 人</span><div>{% if page.has_previous %}<a class="button button-secondary" href="?{{ querystring }}&amp;page={{ page.previous_page_number }}">上一页</a>{% endif %}{% if page.has_next %}<a class="button button-secondary" href="?{{ querystring }}&amp;page={{ page.next_page_number }}">下一页</a>{% endif %}</div></nav>{% endif %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'dashboard/report.js' %}?v=20261104-ui" defer></script>{% endblock %}

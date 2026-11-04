@@ -1,10 +1,7 @@
 {% extends "base.html" %}{% block title %}工作区登录{% endblock %}
-{% block content %}
-<h1>登录教学工作区</h1>
-<p>学生使用完整学号登录，包含开头的零。教师使用管理员分配的账号。</p>
-{% if request.GET.updated %}<p role="status">密码已设置，请重新登录。</p>{% endif %}
-<form method="post">{% csrf_token %}{{ form.as_p }}
-<input type="hidden" name="next" value="{{ next }}">
-<button>登录</button></form>
-<p><a href="{% url 'school:activate' %}">首次激活</a> · <a href="{% url 'school:reset' %}">重设密码</a></p>
-{% endblock %}
+{% block content %}<div class="auth-layout">
+<section class="auth-intro"><p class="eyebrow">WELCOME BACK</p><h1>回到你的<br>教学与学习空间</h1><p class="muted">学生使用完整学号登录，包含开头的零。教师使用管理员分配的账号。</p><p><a href="/">浏览公开课程 →</a></p></section>
+<section class="panel auth-panel"><h2>登录工作区</h2>
+{% if request.GET.updated %}<p class="notice" role="status">密码已设置，请重新登录。</p>{% endif %}
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="hidden" name="next" value="{{ next }}"><button>登录</button></form>
+<div class="auth-links"><a href="{% url 'school:activate' %}">首次激活</a><a href="{% url 'school:reset' %}">重设密码</a></div></section></div>{% endblock %}

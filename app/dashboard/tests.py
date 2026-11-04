@@ -1,5 +1,6 @@
 import csv
 from datetime import timedelta
+from decimal import Decimal
 from io import StringIO
 
 from django.contrib.auth import get_user_model
@@ -78,6 +79,43 @@ class GradebookTests(TestCase):
                 self.assertEqual(self.client.get(url,{"class":self.x.pk}).status_code,404)
         self.client.force_login(self.people["J"])
         self.assertEqual(self.client.get(f"/teacher/students/{self.people['004'].pk}/",{"class":self.x.pk}).status_code,404)
+
+    def test_published_score_bands_keep_zero_and_previous_release(self):
+        result = self.client.get("/dashboard/", {"class": self.x.pk, "assignment": self.tasks[0].pk})
+        cells = {row["student"].username: row["cells"][0] for row in result.context["rows"]}
+        self.assertEqual((cells["001"]["status"], cells["001"]["score"], cells["001"]["score_band"]),
+                         ("draft", "16", 3))
+        self.assertEqual((cells["002"]["score"], cells["002"]["score_percent"], cells["002"]["score_band"]),
+                         ("0", "0", 0))
+        self.assertIsNone(cells["003"]["score_band"])
+        self.assertIsNone(cells["003"]["score_percent"])
+        grade = ReleasedGrade.objects.get(student=self.people["002"])
+        for score, band in [("4.99", 0), ("5", 1), ("9.99", 1), ("10", 2), ("14.99", 2), ("15", 3), ("20", 3)]:
+            with self.subTest(score=score):
+                grade.score = Decimal(score)
+                grade.save(update_fields=["score"])
+                page = self.client.get("/dashboard/", {"class": self.x.pk, "assignment": self.tasks[0].pk, "q": "002"})
+                self.assertEqual(page.context["rows"][0]["cells"][0]["score_band"], band)
+
+    def test_empty_filter_preserves_whole_class_statistics_and_reset(self):
+        result = self.client.get("/dashboard/", {"class": self.x.pk, "q": "不存在的学生"})
+        self.assertEqual(result.context["page"].paginator.count, 0)
+        self.assertEqual(result.context["student_count"], 3)
+        self.assertContains(result, "8/20 · 40%")
+        self.assertContains(result, "计入 2 人 / 全班 3 人")
+        self.assertContains(result, f'href="?class={self.x.pk}"')
+
+    def test_student_return_retains_page_and_filters(self):
+        for i in range(25):
+            student = get_user_model().objects.create_user(f"1{i:02d}")
+            Enrollment.objects.create(teaching_class=self.x, student=student)
+        data = {"class": self.x.pk, "assignment": self.tasks[1].pk, "status": "missing", "page": 2}
+        report = self.client.get("/dashboard/", data)
+        student = report.context["page"][0]["student"]
+        detail = self.client.get(f"/teacher/students/{student.pk}/", data)
+        self.assertContains(detail, f'#student-{student.pk}')
+        self.assertEqual(detail.context["back_query"], report.context["back_query"])
+        self.assertIn("page=2", detail.context["back_query"])
 
     def test_pagination_and_individual_home(self):
         for i in range(25):

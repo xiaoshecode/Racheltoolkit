@@ -1,22 +1,56 @@
-{% extends "base.html" %}{% block title %}编辑课程 · {{ rev.title }}{% endblock %}
-{% block content %}<p class="eyebrow">教师工作区 / <a href="{% url 'catalog_teacher_courses' %}">课程编辑</a></p>
-<h1>{{ rev.title }}</h1><p>当前草稿版本 {{ rev.edit_version }}。每次保存后可预览整门课程。</p>
-<p class="actions"><a href="{% url 'catalog_preview' rev.course_id %}">预览草稿</a>{% if rev.course.publication %}<a href="{% url 'catalog_course' rev.course_id %}">查看已发布课程</a>{% else %}<small>首次发布后将生成公开课程入口。</small>{% endif %}</p>
+{% extends "base.html" %}{% load static %}
+{% block title %}编辑课程 · {{ rev.title }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'catalog/catalog.css' %}?v=20261104-ui">{% endblock %}
+{% block content %}
+<nav class="eyebrow" aria-label="课程位置"><a href="{% url 'catalog_teacher_courses' %}">课程编辑</a> / {{ rev.course.code }}</nav>
+<div class="course-heading"><div><h1>{{ rev.title }}</h1><p class="muted">按章节整理课程，保存草稿后预览，确认内容再正式发布。</p></div><a class="button button-secondary" href="{% url 'catalog_preview' rev.course_id %}">预览草稿</a></div>
+<div class="revision-strip" aria-label="课程版本状态">
+  <div><span class="status-pill">正在编辑 · 草稿</span><strong>第 {{ rev.seq }} 版 · 草稿修订 {{ rev.edit_version }}</strong><small>保存只更新草稿，访客暂不可见。</small></div>
+  <div>{% if rev.course.publication %}<span class="status-pill">对外公开</span><strong>第 {{ rev.course.publication.revision.seq }} 版</strong><a href="{% url 'catalog_course' rev.course_id %}">查看已发布课程</a>{% else %}<span class="status-pill">尚未发布</span><strong>公开课程入口待开启</strong><small>首次发布后，访客即可阅读课程。</small>{% endif %}</div>
+</div>
 {% if error %}<div class="notice" role="alert">{{ error }}{% if submitted.title or submitted.body or submitted.intro %}<details open><summary>刚才提交的内容</summary><p>{{ submitted.title }}</p><p>{{ submitted.body|linebreaksbr }}{{ submitted.intro|linebreaksbr }}</p></details>{% endif %}</div>{% endif %}
-<form class="panel" method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><h2>课程介绍</h2>
-<p><label>课程名称<input name="title" value="{{ rev.title }}" maxlength="160" required></label></p>
-<p><label>简介<textarea name="intro" rows="3">{{ rev.intro }}</textarea></label></p><button name="action" value="course">保存课程介绍</button></form>
-{% for sec in sections %}<section class="panel"><h2>{{ forloop.counter }} · {{ sec.title }}</h2><form method="post">{% csrf_token %}
-<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}">
-<p><label>章节名称<input name="title" value="{{ sec.title }}" maxlength="160" required></label></p><p><label>章节正文<textarea name="body" rows="4">{{ sec.body }}</textarea></label></p>
-<div class="actions"><button name="action" value="section">保存本章</button>{% if not forloop.first %}<button name="action" value="up">上移</button>{% endif %}{% if not forloop.last %}<button name="action" value="down">下移</button>{% endif %}<button name="action" value="delete_section">从草稿移除章节</button></div></form>
-<h3>本章资料</h3>{% for item in sec.materials.all %}<p>{{ item.title }} · {{ item.original_file.original_name }} · {% if item.preview_state == 'ready' %}预览已就绪 · <a href="{% url 'catalog_draft_file' rev.course_id item.stable_key item.preview_file_id 'preview' %}?reader=1">查看 PDF 预览</a>{% elif item.preview_state == 'failed' %}预览生成失败，原件已保留{% elif item.preview_state == 'processing' %}正在生成预览，稍后刷新查看{% else %}等待生成预览，稍后刷新查看{% endif %}</p>
-{% if item.preview_state == 'failed' or item.preview_state == 'missing' %}<form method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}"><input type="hidden" name="material" value="{{ item.stable_key }}"><button name="action" value="retry_preview">重新生成 {{ item.title }} 的预览</button></form>{% endif %}
-<form method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}"><input type="hidden" name="material" value="{{ item.stable_key }}"><button name="action" value="remove">从草稿移除 {{ item.title }}</button></form>{% empty %}<p>尚无资料。</p>{% endfor %}
-<form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}">
-<p><label>新增或替换<select name="material"><option value="">新增资料</option>{% for item in sec.materials.all %}<option value="{{ item.stable_key }}">替换 {{ item.title }}</option>{% endfor %}</select></label></p>
-<p><label>资料名称<input name="title" maxlength="160"></label></p><p><label>课件原件<input type="file" name="original" accept=".ppt,.pptx,.doc,.docx,.pdf" required></label></p>
-<p><label>配套 PDF 预览（可选）<input type="file" name="preview" accept=".pdf"></label></p><small>每份文件最多 50 MiB。Office 原件可附 PDF 或等待服务器生成预览。</small><p><button name="action" value="upload">保存资料至草稿</button></p></form></section>{% endfor %}
-<form class="panel" method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><h2>新增章节</h2>
-<p><label>章名<input name="title" required maxlength="160"></label></p><p><label>正文<textarea name="body" rows="3"></textarea></label></p><button name="action" value="add_section">添加到草稿</button></form>
-<form class="panel" method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><h2>发布课程</h2><p>发布后，全部访客可访问本版章节与资料。</p><button name="action" value="publish">确认发布整门课程</button></form>{% endblock %}
+<div class="course-layout editor-layout">
+  <aside class="course-outline"><nav aria-label="草稿章节目录"><p class="eyebrow">编辑目录 · {{ sections|length }} 章</p><a href="#course-intro">课程介绍</a><ol>{% for sec in sections %}<li><a href="#chapter-{{ sec.stable_key }}"><span class="outline-number">{{ forloop.counter|stringformat:"02d" }}</span><span>{{ sec.title }}<small>{{ sec.materials.all|length }} 份资料</small></span></a></li>{% endfor %}</ol><a class="outline-add" href="#new-chapter">＋ 新增章节</a><a href="#publish-course">预览与发布</a></nav><p class="outline-help">每个编辑区单独保存。离开前，请保存正在修改的内容。</p></aside>
+  <div class="course-main">
+    <section class="editor-panel" id="course-intro"><details class="editor-details" open><summary><span>课程介绍</span><small>名称与课程简介</small></summary>
+      <form method="post" data-unsaved-form>{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}">
+        <p><label>课程名称<input name="title" value="{{ rev.title }}" maxlength="160" required></label></p>
+        <p><label>简介<textarea name="intro" rows="3">{{ rev.intro }}</textarea></label></p>
+        <div class="actions"><button name="action" value="course">保存课程介绍</button><button class="button-secondary" type="reset">撤销未保存修改</button></div>
+      </form>
+    </details></section>
+    {% for sec in sections %}<section class="editor-panel editor-chapter" id="chapter-{{ sec.stable_key }}" aria-labelledby="chapter-title-{{ sec.stable_key }}">
+      <header class="chapter-heading"><div><span class="eyebrow">第 {{ forloop.counter }} 章</span><h2 id="chapter-title-{{ sec.stable_key }}">{{ sec.title }}</h2></div><span class="status-pill">{{ sec.materials.all|length }} 份资料</span></header>
+      <details class="editor-details"><summary><span>编辑章节信息</span><small>章名、正文与顺序</small></summary>
+        <form method="post" data-unsaved-form>{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}">
+          <p><label>章节名称<input name="title" value="{{ sec.title }}" maxlength="160" required></label></p><p><label>章节正文<textarea name="body" rows="4">{{ sec.body }}</textarea></label></p>
+          <div class="actions"><button name="action" value="section">保存本章</button><button class="button-secondary" type="reset">撤销未保存修改</button></div>
+        </form>
+        <div class="chapter-maintenance"><form method="post" class="actions">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}">{% if not forloop.first %}<button class="button-secondary" name="action" value="up" aria-label="上移章节：{{ sec.title }}">上移一章</button>{% endif %}{% if not forloop.last %}<button class="button-secondary" name="action" value="down" aria-label="下移章节：{{ sec.title }}">下移一章</button>{% endif %}</form>
+          <details class="remove-details"><summary>移除本章</summary><p>本章及章内资料将从草稿移除；正式发布后，公开课程才会更新。</p><form method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}"><button class="button-secondary danger-action" name="action" value="delete_section">从草稿移除章节</button></form></details>
+        </div>
+      </details>
+      <div class="chapter-materials"><h3>本章资料</h3>
+        {% for item in sec.materials.all %}<article class="editor-material"><div class="material-title"><span class="file-type">{{ item.format }}</span><div><strong>{{ item.title }}</strong><small>{{ item.original_file.original_name }} · {{ item.original_file.size|filesizeformat }}</small></div></div>
+          <div class="material-state">{% if item.preview_state == 'ready' %}<span class="status-pill">预览已就绪</span><a href="{% url 'catalog_draft_file' rev.course_id item.stable_key item.preview_file_id 'preview' %}?reader=1" aria-label="查看 {{ item.title }} 的 PDF 预览">查看 PDF 预览</a>{% elif item.preview_state == 'failed' %}<span class="preview-warning">预览生成失败，原件已保留</span>{% elif item.preview_state == 'processing' %}<span class="muted">正在生成预览，稍后刷新查看</span>{% else %}<span class="muted">等待生成预览，稍后刷新查看</span>{% endif %}</div>
+          <div class="material-tools">{% if item.preview_state == 'failed' or item.preview_state == 'missing' %}<form method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}"><input type="hidden" name="material" value="{{ item.stable_key }}"><button class="button-secondary" name="action" value="retry_preview">重新生成 {{ item.title }} 的预览</button></form>{% endif %}
+            <details class="remove-details"><summary aria-label="移除资料：{{ item.title }}">移除资料</summary><p>只从当前草稿移除，正式发布后更新公开课程。</p><form method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}"><input type="hidden" name="material" value="{{ item.stable_key }}"><button class="button-secondary danger-action" name="action" value="remove">从草稿移除 {{ item.title }}</button></form></details>
+          </div>
+        </article>{% empty %}<p class="empty-state compact-empty">本章还没有资料。可在下方添加课件、讲义或 PDF。</p>{% endfor %}
+      </div>
+      <details class="editor-details upload-details"><summary><span>新增或替换资料</span><small>保存到本章草稿</small></summary>
+        <form method="post" enctype="multipart/form-data" data-unsaved-form>{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><input type="hidden" name="section" value="{{ sec.stable_key }}">
+          <div class="editor-fields"><p><label>操作<select name="material"><option value="">新增资料</option>{% for item in sec.materials.all %}<option value="{{ item.stable_key }}">替换 {{ item.title }}</option>{% endfor %}</select></label></p><p><label>资料名称<input name="title" maxlength="160" placeholder="留空则使用原件文件名"></label></p></div>
+          <p class="muted">新增会保留已有资料；替换会更新所选资料的原件和预览。</p>
+          <p><label>课件原件<input type="file" name="original" accept=".ppt,.pptx,.doc,.docx,.pdf" required></label></p><p><label>配套 PDF 预览（可选）<input type="file" name="preview" accept=".pdf"></label></p><small>每份文件最多 50 MiB。Office 原件可附 PDF 或等待服务器生成预览。</small>
+          <div class="actions"><button name="action" value="upload">保存资料至草稿</button><button class="button-secondary" type="reset">撤销未保存修改</button></div>
+        </form>
+      </details>
+    </section>{% endfor %}
+    <section class="editor-panel" id="new-chapter"><details class="editor-details" open><summary><span>新增章节</span><small>添加到课程目录末尾</small></summary>
+      <form method="post" data-unsaved-form>{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><p><label>章名<input name="title" required maxlength="160" placeholder="例如：函数与图像"></label></p><p><label>正文<textarea name="body" rows="3"></textarea></label></p><div class="actions"><button name="action" value="add_section">添加到草稿</button><button class="button-secondary" type="reset">撤销未保存修改</button></div></form>
+    </details></section>
+    <section class="editor-panel publish-panel" id="publish-course" aria-labelledby="publish-title"><p class="eyebrow">最后一步 · 对外发布</p><h2 id="publish-title">先预览，再发布</h2><p>本次将发布整门课程的 {{ sections|length }} 个章节。请先保存各编辑区，并确认资料预览已就绪。</p><ol class="publish-steps"><li><strong>检查草稿</strong><span>按访客的阅读顺序检查正文、资料和预览。</span><a class="button button-secondary" href="{% url 'catalog_preview' rev.course_id %}">预览整门课程草稿</a></li><li><strong>正式发布</strong><span>发布后，全部访客可访问本版章节与资料。{% if rev.course.publication %}现有公开课程将更新为本版。{% endif %}</span><form method="post">{% csrf_token %}<input type="hidden" name="edit_version" value="{{ rev.edit_version }}"><button name="action" value="publish">确认发布整门课程</button></form></li></ol></section>
+  </div>
+</div>
+{% endblock %}

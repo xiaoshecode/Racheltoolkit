@@ -2,8 +2,20 @@ const form = document.querySelector('#submission-form');
 const queue = document.querySelector('#queue'), message = document.querySelector('#receipt-status');
 const owner = document.querySelector('#owner');
 const fresh = document.querySelector('#fresh-version');
+const submitButton = document.querySelector('#submit-version');
+const queueSummary = document.querySelector('#queue-summary');
+const queueEmpty = document.querySelector('#queue-empty');
 let items = [], key = newKey(), busy = false, submitted = false;
 function newKey() { return crypto.randomUUID(); }
+function fileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KiB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MiB';
+}
+function submitState() {
+  form.setAttribute('aria-busy', String(busy));
+  submitButton.textContent = busy ? '正在提交整版…' : submitted ? '使用原编号重试整版' : '确认并提交整版';
+}
 function cacheName() {
   return ['teaching-intake',form.dataset.actor,form.dataset.work,owner?.value || 'self'].join(':');
 }
@@ -16,11 +28,13 @@ function remember(value) {
 function resetRequest() {
   if (!submitted) key = newKey();
   message.textContent = submitted ? '正在重试原版。如需更换清单，请先另起一版。' : '';
+  submitState();
 }
 async function recover() {
   let saved=null;
   try { saved=sessionStorage.getItem(cacheName()); } catch { }
   key=saved || newKey(); submitted=!!saved; fresh.hidden=!submitted;
+  submitState();
   if (!saved) { message.textContent=''; return; }
   message.textContent='正在核对上次提交…';
   const route=owner ? '/teacher/assignments/'+form.dataset.work+'/students/'+owner.value : '/assignments/'+form.dataset.work;
@@ -37,6 +51,9 @@ async function recover() {
 fresh.onclick=()=>{remember(null);submitted=false;fresh.hidden=true;resetRequest();};
 function redraw() {
   queue.replaceChildren();
+  queueEmpty.hidden = items.length > 0;
+  queueSummary.textContent = (items.length ? items.length + ' 个文件' : '尚未选择文件') + ' · ' + fileSize(items.reduce((total, item) => total + item.file.size, 0)) + ' / 20 MiB';
+  submitState();
   if (owner) {
     const option = owner.selectedOptions[0];
     document.querySelector('#proxy-target').textContent = owner.value
@@ -46,19 +63,31 @@ function redraw() {
   items.forEach((item, i) => {
     const row = document.createElement('li');
     if (item.url) {
-      const img = new Image(); img.src = item.url; img.height = 72; img.alt = '待交第 ' + (i+1) + ' 页';
+      const img = new Image(); img.src = item.url; img.className = 'queue-preview'; img.alt = '待交第 ' + (i+1) + ' 页';
       row.append(img);
+    } else {
+      const preview = document.createElement('span'); preview.className = 'queue-preview queue-document';
+      preview.textContent = item.file.name.split('.').pop().slice(0, 8).toUpperCase();
+      preview.setAttribute('aria-hidden', 'true'); row.append(preview);
     }
-    row.append(document.createTextNode(' ' + item.file.name + ' '));
+    const details = document.createElement('div'); details.className = 'queue-file';
+    const position = document.createElement('span'); position.className = 'queue-position';
+    position.textContent = item.url ? '第 ' + (i+1) + ' 页' : '附件 ' + (i+1);
+    const filename = document.createElement('strong'); filename.textContent = item.file.name;
+    const size = document.createElement('span'); size.textContent = fileSize(item.file.size);
+    details.append(position, filename, size); row.append(details);
+    const actions = document.createElement('div'); actions.className = 'queue-actions';
     for (const [label, offset] of [['上移',-1],['下移',1],['移除',0]]) {
       const btn = document.createElement('button'); btn.type='button'; btn.textContent=label;
+      btn.setAttribute('aria-label', label + '第 ' + (i+1) + ' 项：' + item.file.name);
       btn.disabled=busy || (offset !== 0 && (i+offset < 0 || i+offset >= items.length));
       btn.onclick=() => {
         if (!offset) { URL.revokeObjectURL(item.url || ''); items.splice(i,1); }
         else [items[i],items[i+offset]]=[items[i+offset],items[i]];
         resetRequest(); redraw();
-      }; row.append(btn);
+      }; actions.append(btn);
     }
+    row.append(actions);
     queue.append(row);
   });
 }
@@ -75,6 +104,7 @@ if(owner) owner.addEventListener('change',()=>{
   redraw();
   recover();
 });
+redraw();
 recover();
 form.elements.note?.addEventListener('input',resetRequest);
 form.addEventListener('submit',async e=>{

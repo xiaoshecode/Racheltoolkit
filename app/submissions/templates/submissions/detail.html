@@ -1,6 +1,58 @@
-{% extends "base.html" %}{% load static %}{% block title %}{{ work.title }} · 班级作业{% endblock %}{% block content %}<a href="/assignments/">返回班级作业</a><p class="eyebrow">{{ work.teaching_class }}</p><h1>{{ work.title }}</h1><p>{{ work.instructions|linebreaksbr }}</p><p>{{ work.due_at|date:"Y-m-d H:i" }} 截止（北京） · 满分 {{ work.max_points }}</p>
-{% if teacher %}<div class="actions"><a href="/teacher/assignments/{{ work.pk }}/grades/">批改与成绩</a><a href="/teacher/assignments/{{ work.pk }}/answer-key/">管理标准答案</a></div><section class="panel"><h2>收件名单</h2><ul>{% for person,sub in roster %}<li>{{ person.first_name }} · {{ person.username }} {% if sub %}<a href="/submissions/{{ sub.pk }}/">已交 V{{ sub.version }}</a> · <a href="/teacher/submissions/{{ sub.pk }}/review/">批阅本版</a>{% else %}未交{% endif %}</li>{% empty %}<li>本班尚无有效学生。</li>{% endfor %}</ul></section><details class="panel"><summary>延长截止时间</summary><form method="post" action="/teacher/assignments/{{ work.pk }}/extend/">{% csrf_token %}{{ extension.as_p }}<button>确认延期</button></form></details>{% else %}<p><a href="/assignments/{{ work.pk }}/answer-key/">查看本班标准答案与发布状态</a></p>{% endif %}
-<form class="panel" id="submission-form" data-work="{{ work.pk }}" data-actor="{{ user.pk }}" data-title="{{ work.title }}" method="post" enctype="multipart/form-data" action="/assignments/{{ work.pk }}/submissions/">{% csrf_token %}
-<h2>{% if teacher %}教师代交{% else %}提交作业{% endif %}</h2>{% if teacher %}<label>所属学生 <select id="owner" required><option value="">请选择学生</option>{% for person,sub in roster %}<option value="{{ person.pk }}" data-latest="{{ sub.version|default:0 }}">{{ person.first_name }} · {{ person.username }} · {{ work.teaching_class.code }}</option>{% endfor %}</select></label><label>代交说明 <input name="note" maxlength="300" required></label>{% endif %}
-<p>选 1–10 张照片，或一份 PDF、DOC、DOCX 文档，合计最多 20 MiB。按下提交前可以调整照片顺序。</p><label>拍照添页 <input id="camera" type="file" accept="image/*" capture="environment"></label><br><label>相册或文档 <input type="file" id="files" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple></label><ol id="queue"></ol>{% if teacher %}<p class="notice" id="proxy-target" aria-live="polite">请先选择所属学生。</p>{% endif %}<button>确认并提交整版</button><button class="quiet" hidden id="fresh-version" type="button">另起一版（使用新编号）</button><p role="status" id="receipt-status"></p></form>
-{% if mine %}<section class="panel"><h2>我的历史回执</h2>{% for s in mine %}<p><a href="/submissions/{{ s.pk }}/">V{{ s.version }} · {{ s.received_at|date:"Y-m-d H:i" }}</a></p>{% endfor %}</section>{% endif %}<script defer src="{% static 'submissions/upload.js' %}"></script>{% endblock %}
+{% extends "base.html" %}{% load static %}
+{% block title %}{{ work.title }} · 班级作业{% endblock %}
+{% block head %}{{ block.super }}<link rel="stylesheet" href="{% static 'submissions/workflow.css' %}?v=20261104-ui">{% endblock %}
+{% block content %}
+<div class="assignment-work">
+  <a class="back-link" href="/assignments/">← 班级作业</a>
+  <header class="page-heading">
+    <div><p class="eyebrow">{{ work.teaching_class }}</p><h1>{{ work.title }}</h1></div>
+    {% if teacher %}<div class="task-actions"><a class="button" href="/teacher/assignments/{{ work.pk }}/grades/">批改与成绩</a><a class="button button-secondary" href="/teacher/assignments/{{ work.pk }}/answer-key/">管理标准答案</a></div>{% endif %}
+  </header>
+  <dl class="assignment-context">
+    <div><dt>截止时间 · 北京</dt><dd>{{ work.due_at|date:"Y-m-d H:i" }}</dd></div>
+    <div><dt>作业满分</dt><dd>{{ work.max_points }} <span>分</span></dd></div>
+    <div><dt>提交方式</dt><dd>照片或一份文档</dd></div>
+  </dl>
+  {% if work.instructions %}<section class="assignment-instructions" aria-labelledby="instructions-heading"><h2 id="instructions-heading">作业要求</h2><div>{{ work.instructions|linebreaksbr }}</div></section>{% endif %}
+  {% if teacher %}
+  <section class="workflow-section" aria-labelledby="roster-heading">
+    <div class="section-heading"><div><p class="eyebrow">本班收件</p><h2 id="roster-heading">收件名单</h2></div><span class="record-count">{{ roster|length }} 名学生</span></div>
+    <p class="section-description">显示每位学生最近一次成功提交的版本。批阅始终绑定打开的版本。</p>
+    <div class="roster-scroll" tabindex="0" role="region" aria-label="本班收件名单，可横向滚动">
+      <table class="roster-table"><thead><tr><th scope="col">学生</th><th scope="col">收件状态</th><th scope="col">操作</th></tr></thead><tbody>
+      {% for person,sub in roster %}<tr><th scope="row">{{ person.first_name|default:person.username }}<small>{{ person.username }}</small></th><td>{% if sub %}<span class="status-pill">已交 V{{ sub.version }}</span>{% else %}<span class="status-pill status-pending">未交</span>{% endif %}</td><td>{% if sub %}<a href="/teacher/submissions/{{ sub.pk }}/review/" aria-label="批阅 {{ person.first_name|default:person.username }} 的 V{{ sub.version }}">批阅本版</a><a href="/submissions/{{ sub.pk }}/" aria-label="查看 {{ person.first_name|default:person.username }} 的 V{{ sub.version }} 回执">查看回执</a>{% else %}<span class="muted">等待提交</span>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="3" class="empty-state">本班尚无有效学生。</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+  </section>
+  <details class="extension-panel"><summary>延长截止时间</summary><p>填写新的北京时间截止时间与原因。</p><form method="post" action="/teacher/assignments/{{ work.pk }}/extend/">{% csrf_token %}{{ extension.as_p }}<button>确认延期</button></form></details>
+  {% else %}<div class="assignment-answer-link"><span>课后对照</span><a href="/assignments/{{ work.pk }}/answer-key/">查看本班标准答案与发布状态 →</a></div>{% endif %}
+  <form class="submission-workflow" id="submission-form" data-work="{{ work.pk }}" data-actor="{{ user.pk }}" data-title="{{ work.title }}" method="post" enctype="multipart/form-data" action="/assignments/{{ work.pk }}/submissions/" aria-describedby="upload-limits">
+    {% csrf_token %}
+    <div class="section-heading"><div><p class="eyebrow">整版提交</p><h2>{% if teacher %}教师代交{% else %}提交作业{% endif %}</h2></div><span class="status-pill">收齐后生成回执</span></div>
+    <ol class="submission-steps" aria-label="提交步骤"><li><span>01</span> 选择文件</li><li><span>02</span> 核对页序</li><li><span>03</span> 提交整版</li></ol>
+    {% if teacher %}
+    <div class="proxy-fields"><label>所属学生 <select id="owner" required><option value="">请选择学生</option>{% for person,sub in roster %}<option value="{{ person.pk }}" data-latest="{{ sub.version|default:0 }}">{{ person.first_name }} · {{ person.username }} · {{ work.teaching_class.code }}</option>{% endfor %}</select></label><label>代交说明 <input name="note" maxlength="300" required placeholder="说明本次代交原因"></label></div>
+    <p class="proxy-context" id="proxy-target" aria-live="polite">请先选择所属学生。</p>
+    {% endif %}
+    <section class="upload-step" aria-labelledby="choose-heading">
+      <h3 id="choose-heading"><span>01</span> 选择文件</h3>
+      <p id="upload-limits">选 1–10 张 JPG / PNG 照片，或一份 PDF、DOC、DOCX 文档，合计最多 20 MiB。照片与文档不能放在同一版。</p>
+      <div class="upload-inputs"><label><strong>拍照添页</strong><span>逐页拍摄，保持文字清晰</span><input id="camera" type="file" accept="image/*" capture="environment"></label><label><strong>相册或文档</strong><span>可一次选择多张照片</span><input type="file" id="files" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple></label></div>
+    </section>
+    <section class="upload-step" aria-labelledby="order-heading">
+      <div class="section-heading"><h3 id="order-heading"><span>02</span> 核对页序</h3><p id="queue-summary" class="queue-summary" aria-live="polite">尚未选择文件 · 0 B / 20 MiB</p></div>
+      <p class="section-description">照片按下方顺序组成一版；提交前可上移、下移或移除。文档保留文件内的页序。</p>
+      <div id="queue-empty" class="upload-empty"><span aria-hidden="true">＋</span><strong>把这一版作业的文件放在这里</strong><p>从上方拍照或选择文件，预览和页序会显示在这里。</p></div>
+      <ol id="queue" class="upload-queue" aria-label="待提交文件，按最终顺序排列"></ol>
+    </section>
+    <section class="upload-step upload-confirm" aria-labelledby="submit-heading">
+      <div><h3 id="submit-heading"><span>03</span> 提交整版</h3><p>确认文件完整、页序正确。成功后会打开整版收件回执。</p></div>
+      <div class="upload-submit-actions"><button id="submit-version">确认并提交整版</button><button class="quiet button-secondary" hidden id="fresh-version" type="button">另起一版（使用新编号）</button></div>
+      <p role="status" id="receipt-status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+  </form>
+  {% if mine %}<section class="workflow-section" aria-labelledby="history-heading"><div class="section-heading"><h2 id="history-heading">我的历史回执</h2><span class="record-count">按版本从新到旧</span></div><ul class="receipt-history">{% for s in mine %}<li><a href="/submissions/{{ s.pk }}/"><strong>V{{ s.version }}</strong><span>{{ s.received_at|date:"Y-m-d H:i" }} · 已收齐</span><span aria-hidden="true">→</span></a></li>{% endfor %}</ul></section>{% endif %}
+</div>
+<script defer src="{% static 'submissions/upload.js' %}?v=20261104-ui"></script>
+{% endblock %}

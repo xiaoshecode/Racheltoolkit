@@ -21,4 +21,4 @@ def student_home(user):
     last = ReleasedGrade.objects.filter(student=user, release__assignment__in=work).select_related(
         "release__assignment","submission").order_by("-release_id").first()
     return {"pending":pending[:3], "receipt":current.select_related("assignment").order_by("-received_at", "-pk").first(),
-            "grade":last,"groups":groups.select_related("course")}
+            "grade":last,"groups":groups.select_related("course", "term")}

@@ -1,5 +1,6 @@
 from pathlib import Path
 from urllib.parse import urlencode
+from uuid import UUID
 
 from django.contrib import messages
 from django.conf import settings
@@ -90,9 +91,14 @@ def public_index(request):
 
 
 def course_page(request, revision, chapter_key=None, draft=False):
-    chapters = revision.sections.prefetch_related("materials__original_file", "materials__preview_file")
+    all_chapters = list(revision.sections.prefetch_related("materials__original_file", "materials__preview_file"))
+    current_chapter = None
+    chapters = all_chapters
     if chapter_key:
-        chapters = [get_object_or_404(chapters, stable_key=chapter_key)]
+        current_chapter = next((chapter for chapter in all_chapters if chapter.stable_key == chapter_key), None)
+        if current_chapter is None:
+            raise Http404
+        chapters = [current_chapter]
     teacher_groups = teacher_classes(request.user).filter(course_id=revision.course_id)
     groups = (student_classes(request.user) | teacher_groups).filter(course_id=revision.course_id)
     assignments = []
@@ -113,6 +119,8 @@ def course_page(request, revision, chapter_key=None, draft=False):
         **options, "revision": revision, "rows": [
             (s, files, by_section.get(s.stable_key, [])) for s, files in rows],
         "teacher_groups": teacher_groups, "draft": draft,
+        "outline": [chapter for chapter, _ in rows] if options["searching"] else all_chapters,
+        "current_chapter": current_chapter,
         "file_route": "catalog_draft_file" if draft else "catalog_file",
     })
 
@@ -165,8 +173,13 @@ def editor(request, course_id):
                 blobs = (original, preview)
             edit(course, request.user, expected, request.POST, blobs)
             notices = {"publish": "课程已发布。", "retry_preview": "已请求重新生成预览，稍后刷新页面查看结果。"}
-            messages.success(request, notices.get(request.POST.get("action"), "草稿已保存。"))
-            return redirect("catalog_editor", course_id)
+            action = request.POST.get("action")
+            messages.success(request, notices.get(action, "草稿已保存。"))
+            target = {"course": "course-intro", "add_section": "new-chapter",
+                      "delete_section": "new-chapter", "publish": "publish-course"}.get(action)
+            if action in {"section", "up", "down", "upload", "remove", "retry_preview"}:
+                target = f"chapter-{UUID(request.POST['section'])}"
+            return redirect(reverse("catalog_editor", args=[course_id]) + (f"#{target}" if target else ""))
         except StaleEdit:
             error, status = "草稿已被其他编辑更新。请对照最新内容，再重新提交。", 409
         except (ValidationError, ValueError) as exc:

@@ -1,3 +1,17 @@
-{% extends "base.html" %}{% block title %}学生作业 · {{ row.student.username }}{% endblock %}{% block content %}
-<p><a href="{% url 'teacher_dashboard' %}?{{ back_query }}#student-{{ row.student.pk }}">返回成绩册筛选位置</a></p><p class="eyebrow">{{ group.term }} / {{ group.code }}</p><h1>{{ row.student.first_name|default:row.student.username }}</h1><p>学号 {{ row.student.username }} · {{ group.course.title }}</p>
-{% for cell in row.cells %}<section class="panel"><h2><a href="/assignments/{{ cell.task.pk }}/">{{ cell.task.title }}</a></h2><p>{{ cell.label }}{% if cell.receipt %} · <a href="/submissions/{{ cell.receipt.pk }}/">查看 V{{ cell.receipt.version }} 回执</a>{% endif %}</p>{% if cell.grade %}<p>已公布 {{ cell.score }}/{{ cell.grade.max_points }} · V{{ cell.grade.submission.version }} · {{ cell.grade.feedback }}</p>{% endif %}</section>{% empty %}<p>当前班级没有作业。</p>{% endfor %}{% endblock %}
+{% extends "base.html" %}{% load static %}
+{% block title %}学生作业 · {{ row.student.username }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'dashboard/report.css' %}?v=20261104-ui">{% endblock %}
+{% block content %}
+<a class="gradebook-back" href="{% url 'teacher_dashboard' %}?{{ back_query }}#student-{{ row.student.pk }}">← 返回成绩册筛选位置</a>
+<header class="page-heading"><div><p class="eyebrow">{{ group.term.code }} / {{ group.course.title }} / {{ group.code }}</p><h1>{{ row.student.first_name|default:row.student.username }}</h1><p class="muted">学号 {{ row.student.username }} · 当前范围 {{ column_count }} 次作业</p></div></header>
+<p class="student-report-note">查看最新提交状态与已发布成绩。重交或改分期间，已公布成绩保留原提交版本。</p>
+<div class="student-results">
+{% for cell in row.cells %}
+  <section class="student-result">
+    <header><div><p class="eyebrow">截止 {{ cell.task.due_at|date:"Y-m-d H:i" }} · 满分 {{ cell.task.max_points }}</p><h2><a href="/assignments/{{ cell.task.pk }}/">{{ cell.task.title }}</a></h2></div><span class="status-pill">{{ cell.label }}</span></header>
+    {% if cell.grade %}<div class="student-published"><div class="published-score score-band-{{ cell.score_band }}"><strong>公布 {{ cell.score }}/{{ cell.grade.max_points }} · V{{ cell.grade.submission.version }}</strong><small>已发布得分率 {{ cell.score_percent }}%</small></div><div class="published-feedback"><h3>已发布评语</h3><p>{{ cell.grade.feedback|default:"暂无评语"|linebreaksbr }}</p></div></div>{% else %}<p class="muted">{% if cell.receipt %}已收到作业，暂无已发布成绩。{% else %}尚无提交记录。{% endif %}</p>{% endif %}
+    <footer class="student-result-actions">{% if cell.receipt %}<a href="/submissions/{{ cell.receipt.pk }}/">查看 V{{ cell.receipt.version }} 回执</a>{% endif %}<a href="/assignments/{{ cell.task.pk }}/">查看本次作业</a></footer>
+  </section>
+{% empty %}<div class="empty-state"><h2>当前班级没有作业</h2><p>新作业会在这里按时间排列。</p></div>{% endfor %}
+</div>
+{% endblock %}

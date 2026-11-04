@@ -1,1 +1,5 @@
-{% extends "base.html" %}{% block content %}<p class="eyebrow">{{ group }}</p><h1>布置作业</h1><form class="panel" method="post">{% csrf_token %}{{ form.as_p }}<button>向本班发布作业</button></form>{% endblock %}
+{% extends "base.html" %}{% load static %}
+{% block title %}布置作业 · {{ group }}{% endblock %}
+{% block head %}{{ block.super }}<link rel="stylesheet" href="{% static 'submissions/workflow.css' %}?v=20261104-ui">{% endblock %}
+{% block content %}<div class="assignment-work"><a class="back-link" href="/assignments/">← 班级作业</a><header class="page-heading"><div><p class="eyebrow">{{ group }}</p><h1>布置作业</h1><p>填写本班作业要求，核对北京时间截止与满分后发布。</p></div></header>
+<form class="assignment-create" method="post" data-unsaved-form>{% csrf_token %}{{ form.as_p }}<div class="form-action"><p class="section-description">发布后，本班学生即可看到作业并提交作答。</p><button>向本班发布作业</button></div></form></div>{% endblock %}

@@ -258,6 +258,31 @@ class CoursePublicationTests(TestCase):
             self.assertNotIn("Access-Control-Allow-Credentials", response)
             self.assertIn("Origin", response["Vary"])
 
+    def test_chapter_navigation_tracks_publication_scope_and_saved_chapter(self):
+        self.post("add_section", title="已公布第一章")
+        first = draft_for(self.course).sections.get()
+        self.post("add_section", title="已公布第二章")
+        second = draft_for(self.course).sections.last()
+        self.post("publish")
+        self.post("add_section", title="教师未公布章节")
+        saved = self.post("section", section=first.stable_key, title="待发布改名", body="正文")
+        self.assertEqual(saved["Location"], self.editor + f"#chapter-{first.stable_key}")
+        preview = self.client.get(reverse("catalog_preview", args=[self.course.pk]))
+        self.assertContains(preview, "教师未公布章节")
+        self.client.logout()
+        chapter_url = reverse("catalog_chapter", args=[self.course.pk, first.stable_key])
+        response = self.client.get(chapter_url)
+        self.assertEqual(response.context["current_chapter"].stable_key, first.stable_key)
+        self.assertEqual([chapter.stable_key for chapter in response.context["outline"]],
+                         [first.stable_key, second.stable_key])
+        self.assertContains(response, 'aria-current="page"')
+        self.assertContains(response, reverse("catalog_chapter", args=[self.course.pk, second.stable_key]))
+        self.assertNotContains(response, "教师未公布章节")
+        self.assertNotContains(response, "待发布改名")
+        filtered = self.client.get(self.course_url, {"q": "第一章"})
+        self.assertEqual([chapter.stable_key for chapter in filtered.context["outline"]], [first.stable_key])
+        self.assertNotContains(filtered, "已公布第二章")
+
     def test_search_uses_published_titles_keywords_file_names_and_format(self):
         self.assertNotContains(self.client.get(self.editor),"查看已发布课程")
         self.post("add_section", title="证据来源", body="比较可信度")

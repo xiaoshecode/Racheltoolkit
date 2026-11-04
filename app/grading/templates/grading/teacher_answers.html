@@ -1,17 +1,19 @@
 {% extends "grading/base.html" %}{% block title %}标准答案 · {{ task.title }}{% endblock %}{% block sheet %}
-<p><a href="/assignments/{{ task.pk }}/">{{ task.teaching_class }} · {{ task.title }}</a></p><h1>编辑标准答案</h1>
-<p>本班截止 {{ task.due_at|date:"Y-m-d H:i" }}（北京时间）。{% if published %}已公布 R{{ published.revision.seq }} · {{ published.released_at|date:"m-d H:i" }}{% else %}尚未向学生公布{% endif %}</p>
-<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<a class="grading-back" href="/assignments/{{ task.pk }}/">← 返回{{ task.title }}</a>
+<header class="page-heading"><div><p class="eyebrow">{{ task.teaching_class }} / 标准答案</p><h1>编辑标准答案</h1><p>{{ task.title }}</p></div><a class="button button-secondary" href="{% url 'grading:publish' task.pk %}">成绩发布名单</a></header>
+<dl class="grading-context"><div><dt>本班截止 · 北京时间</dt><dd>{{ task.due_at|date:"Y-m-d H:i" }}</dd></div><div><dt>最新保存修订</dt><dd>{% if key %}R{{ key.seq }}{% else %}尚未保存{% endif %}</dd></div><div><dt>学生可见版本</dt><dd>{% if published %}已公布 R{{ published.revision.seq }}{% else %}尚未向学生公布{% endif %}</dd></div></dl>
+<section class="answer-edit-section" aria-labelledby="answer-draft-heading"><div class="review-section-title"><h2 id="answer-draft-heading">编辑与保存</h2><span class="status-pill">保存会生成新修订</span></div><p class="record-meta">先保存试题和答案，再在下方单独确认发布。已有学生可见的版本保持原样。</p>
+<form class="answer-edit-form" method="post" enctype="multipart/form-data" data-unsaved-form>{% csrf_token %}
 <input name="version" type="hidden" value="{{ key.seq|default:0 }}">
-<label>试卷名称 <input name="paper" maxlength="80" value="{{ key.paper.code|default:task.title }}" required></label>
-<label>试卷版本 <input name="paper_version" type="number" min="1" value="{{ key.paper.version|default:1 }}" required></label>
+<div class="paper-identity"><label>试卷名称 <input name="paper" maxlength="80" value="{{ key.paper.code|default:task.title }}" required></label>
+<label>试卷版本 <input name="paper_version" type="number" min="1" value="{{ key.paper.version|default:1 }}" required></label></div>
 <div id="key-rows">{% for e in entries %}<fieldset><legend>试题 {{ e.answer.question.number }}</legend>
 <label>题号 <input name="number" value="{{ e.answer.question.number }}"></label><label>知识点 <input name="topic" value="{{ e.answer.question.topic }}"></label>
 <label>题干 <textarea name="prompt">{{ e.answer.question.prompt }}</textarea></label><label>标准答案 <textarea name="answer">{{ e.answer.text }}</textarea></label></fieldset>{% endfor %}
 <fieldset id="blank-question"><legend>新题目</legend><label>题号 <input name="number"></label><label>知识点 <input name="topic"></label><label>题干 <textarea name="prompt"></textarea></label><label>标准答案 <textarea name="answer"></textarea></label></fieldset></div>
-<button type="button" id="add-question">再加一题</button>
+<button type="button" id="add-question" class="button-secondary">＋ 再加一题</button>
 <p><label>答案附件 PDF <input type="file" name="file" accept="application/pdf"></label></p>
 {% if key.file_id %}<p><a href="{{ key.pk }}/preview/">预览已保存的答案 PDF</a> · <label><input type="checkbox" name="remove_file">此次修订移除附件</label></p>{% endif %}
-<button name="action" value="save">保存新修订</button></form>
-{% if key %}<hr><h2>公布 R{{ key.seq }}</h2><p>公布后本班所有在读学生都可查看，包括未提交作业者。</p><form method="post">{% csrf_token %}<input type="hidden" name="revision" value="{{ key.pk }}"><input type="hidden" name="request_key" value="{{ request_key }}"><button name="action" value="publish">向本班发布标准答案</button></form>{% endif %}
+<div class="answer-save-action"><button name="action" value="save">保存新修订</button><span>此步骤保存答案，不向学生发布。</span></div></form></section>
+{% if key %}<section class="answer-release-section" aria-labelledby="answer-release-heading"><p class="eyebrow">学生可见</p><h2 id="answer-release-heading">公布 R{{ key.seq }}</h2><p>到达本班截止时间后，可发布这份已保存的答案。公布后本班所有在读学生都可查看，包括未提交作业者。</p>{% if published %}<p class="record-meta">当前已公布 R{{ published.revision.seq }} · {{ published.released_at|date:"Y-m-d H:i" }}（北京）</p>{% endif %}<form method="post">{% csrf_token %}<input type="hidden" name="revision" value="{{ key.pk }}"><input type="hidden" name="request_key" value="{{ request_key }}"><button name="action" value="publish">向本班发布标准答案</button></form></section>{% endif %}
 <script>document.getElementById('add-question').onclick=()=>{const row=document.getElementById('blank-question').cloneNode(true);row.removeAttribute('id');row.querySelectorAll('input,textarea').forEach(field=>field.value='');document.getElementById('key-rows').append(row);row.querySelector('input').focus()};</script>{% endblock %}

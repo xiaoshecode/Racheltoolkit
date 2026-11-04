@@ -1,5 +1,5 @@
-.grade-work { max-width: 66rem; margin-inline:auto; color:#24433e; }
-.grade-work > h1 { font-family: "Songti SC","SimSun",serif; letter-spacing:-.02em; margin-block:.35rem 1.1rem; }
+.grade-work { max-width: 76rem; margin-inline:auto; color:var(--ink, #173e3a); }
+.grade-work > h1 { letter-spacing:-.02em; margin-block:.35rem 1.1rem; }
 .grade-work > p:first-child { color:#506761; font-size:.9rem; margin-block:0 1rem; }
 .grade-work > p:first-child a { display:inline-block; text-decoration-thickness:1px; }
 .grade-work > section:not(.annotation) { border-top:1px solid #ccd9cf; padding-block:.8rem 1.25rem; }
@@ -25,9 +25,95 @@
 .publish-list li { justify-content:space-between; border-bottom:1px solid #ccd9cf; padding:.75rem .4rem; }
 .publish-list label { min-height:44px; cursor:pointer; }
 .publish-list a { flex:none; }
+.grading-back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: .75rem; font-size: .9rem; }
+.grade-work .page-heading h1 { overflow-wrap: anywhere; }
+.review-heading h1 span { white-space: nowrap; color: var(--accent, #914521); }
+.grading-context { display: flex; gap: 1.5rem 3rem; flex-wrap: wrap; padding-block: 1.1rem; margin: 1.5rem 0 1rem; border-block: 1px solid var(--line, #d5ddd5); }
+.grading-context dt { color: var(--muted, #60716a); font-size: .8rem; }
+.grading-context dd { margin: .4rem 0 0; font-weight: 600; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.revision-switch { display: flex; align-items: end; gap: .7rem 1rem; flex-wrap: wrap; padding: 1rem 0; }
+.grade-work .revision-switch > label { display: grid; gap: .4rem; margin: 0; font-size: .85rem; max-width: 100%; }
+.revision-switch select { min-width: 15rem; max-width: 100%; }
+.revision-switch p { margin: .6rem 0; color: var(--muted, #60716a); font-size: .85rem; }
+.review-jumps { display: flex; flex-wrap: wrap; gap: 1.5rem; padding-block: .3rem 1rem; }
+.review-jumps a { display: inline-flex; min-height: 44px; align-items: center; font-size: .85rem; }
+.review-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(19rem, 1fr); align-items: start; gap: 1.4rem; }
+.review-document { min-width: 0; position: sticky; top: 1rem; }
+.review-scoring { min-width: 0; border: 1px solid var(--line, #d5ddd5); background: #fff; }
+.review-score-summary, .question-judgments { padding: 1.25rem; }
+.review-section-title { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; justify-content: space-between; margin-bottom: .8rem; }
+.review-section-title h2 { margin: 0; font-size: 1.2rem; }
+.review-scoring label { display: grid; gap: .45rem; margin-block: .85rem; font-size: .9rem; }
+.review-scoring input, .review-scoring textarea, .review-scoring select { width: 100%; min-width: 0; max-width: 100%; }
+.review-scoring .score-field { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: .5rem; font-weight: 600; }
+.score-field > span { color: var(--muted, #60716a); font-size: .8rem; font-weight: 400; }
+.grade-work .score-field input { grid-column: 1 / -1; width: 100%; font-size: 1.7rem; font-weight: 600; padding: .65rem .9rem; }
+.save-draft { width: 100%; margin-top: .4rem; }
+.draft-explanation { color: var(--muted, #60716a); font-size: .82rem; line-height: 1.7; margin-bottom: 0; }
+.saved-draft { font-size: .85rem; color: var(--brand, #173e3a); background: var(--surface, #eef2eb); padding: .5rem .7rem; margin-bottom: 0; }
+.question-judgments { border-top: 1px solid var(--line, #d5ddd5); }
+.question-judgments h2 { margin-top: 0; font-size: 1.1rem; }
+.question-judgments fieldset { margin: 1.2rem 0 0; padding: .8rem 1rem 1rem; min-width: 0; border: 1px solid var(--line, #d5ddd5); }
+.question-judgments legend { font-size: .95rem; padding-inline: .3rem; }
+.question-prompt { margin: .25rem 0 .8rem; font-size: .9rem; line-height: 1.7; overflow-wrap: anywhere; }
+.review-save-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem 2rem; flex-wrap: wrap; margin-top: 1.5rem; padding: 1.15rem 1.4rem; background: var(--surface, #eef2eb); border: 1px solid var(--line, #d5ddd5); }
+.review-save-footer strong { font-size: .95rem; font-weight: 600; }
+.review-save-footer p { margin: .35rem 0 0; font-size: .82rem; color: var(--muted, #60716a); }
+.grade-work .release-history { margin-top: 2rem; }
+.release-history ul { list-style: none; padding: 0; }
+.release-history li { border-bottom: 1px solid var(--line, #d5ddd5); }
+.release-history a { display: inline-flex; min-height: 44px; align-items: center; font-size: .9rem; }
+.publication-note { background: #f5eee4; border-left: 3px solid var(--accent, #914521); padding: 1rem 1.2rem; margin-block: 1.5rem 2rem; }
+.publication-note strong { font-weight: 650; }
+.publication-note p { font-size: .9rem; margin: .45rem 0 0; }
+.publication-scroll { overflow: auto; max-width: 100%; margin-top: 1rem; }
+.publication-table { width: 100%; min-width: 42rem; border-collapse: collapse; font-size: .9rem; }
+.publication-table th, .publication-table td { padding: .8rem 1rem; text-align: left; border-bottom: 1px solid var(--line, #d5ddd5); }
+.publication-table thead { background: var(--surface, #eef2eb); }
+.publication-table thead th { font-size: .8rem; color: var(--muted, #60716a); white-space: nowrap; font-weight: 600; }
+.publication-table tbody th { font-weight: 600; }
+.publication-table label { display: flex; align-items: center; gap: .8rem; min-height: 44px; cursor: pointer; }
+.publication-table small { display: block; font-size: .8rem; font-weight: 400; color: var(--muted, #60716a); margin-top: .25rem; }
+.publication-table a { min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; }
+.publication-score { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.publication-score span { font-weight: 400; color: var(--muted, #60716a); }
+.ungraded-name { display: block; margin-left: 2rem; }
+.publication-actions { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1.1rem 1.25rem; margin: 1.5rem 0; background: var(--surface, #eef2eb); }
+.publication-actions p { margin: .3rem 0; }
+#selected-count { font-weight: 600; }
+.publication-success { padding: 1.4rem; margin-top: 1.5rem; background: var(--brand, #173e3a); color: white; }
+.publication-success strong { font-size: 1.6rem; }
+.publication-success p { margin-bottom: 0; color: #e2ece5; }
+.grade-work .answer-edit-section { border: 1px solid var(--line, #d5ddd5); background: #fff; padding: clamp(1rem, 3vw, 2rem); margin-block: 1.8rem; }
+.answer-edit-form .paper-identity { display: grid; grid-template-columns: minmax(0, 1fr) 10rem; gap: 1.5rem; max-width: 50rem; margin-block: 1.5rem; }
+.paper-identity label { display: grid; gap: .45rem; }
+.answer-edit-form #key-rows { display: grid; gap: 1.2rem; }
+.answer-edit-form fieldset { min-width: 0; padding: 1.1rem; border: 1px solid var(--line, #d5ddd5); }
+.answer-edit-form fieldset legend { padding-inline: .4rem; font-size: .95rem; }
+.answer-edit-form label { font-size: .9rem; }
+.answer-edit-form textarea { min-height: 6rem; }
+.answer-edit-form #add-question { margin-top: 1rem; }
+.answer-save-action { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; border-top: 1px solid var(--line, #d5ddd5); padding-top: 1.3rem; margin-top: 1.5rem; }
+.answer-save-action span { color: var(--muted, #60716a); font-size: .85rem; }
+.grade-work .answer-release-section { padding: 1.4rem 1.6rem; background: #f5eee4; border: 1px solid #dfcdbb; margin-block: 2rem; }
+.answer-release-section h2 { margin: .2rem 0 .7rem; }
+.answer-release-section > p:not(.eyebrow) { max-width: 52rem; font-size: .9rem; }
+.answer-release-section form { margin-top: 1.2rem; }
+@media(max-width: 60rem) {
+  .review-layout { grid-template-columns: 1fr; }
+  .review-document { position: static; }
+  .grading-context { gap: 1rem 2rem; }
+  .review-save-footer button { width: 100%; }
+}
 @media(max-width:40rem) {
   .grade-work .grade-entry { grid-template-columns:1fr; }
   .grade-work .grade-entry .number { text-align:start; }
   .grade-work .score-banner { gap:.3rem .6rem; }
   .grade-work fieldset > label > select { width:100%; }
+  .grading-context { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grading-context dd { font-size: .85rem; }
+  .revision-switch label, .revision-switch select { width: 100%; min-width: 0; }
+  .answer-edit-form .paper-identity { grid-template-columns: 1fr; gap: 1rem; }
+  .publication-actions button { width: 100%; }
+  .grade-work .answer-release-section { padding: 1.1rem; }
 }

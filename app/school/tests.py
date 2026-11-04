@@ -64,6 +64,25 @@ class IdentityTests(TestCase):
         self.assertFalse(teacher_classes(editor).exists())
         self.assertFalse(student_classes(AnonymousUser()).exists())
 
+    def test_workspace_navigation_follows_current_independent_roles(self):
+        editor = get_user_model().objects.create_user("Editor-nav")
+        CourseEditor.objects.create(course=self.course, teacher=editor)
+        self.client.force_login(editor)
+        response = self.client.get("/me/")
+        self.assertContains(response, 'href="/teacher/courses/"')
+        self.assertNotContains(response, 'href="/dashboard/"')
+        self.assertNotContains(response, 'href="/assignments/"')
+        self.client.force_login(self.teacher)
+        response = self.client.get("/dashboard/")
+        self.assertContains(response, 'href="/dashboard/" aria-current="page"')
+        self.assertNotContains(response, 'href="/teacher/courses/"')
+        TeachingAssignment.objects.filter(teacher=self.teacher).update(active=False)
+        response = self.client.get("/me/")
+        self.assertNotContains(response, 'href="/dashboard/"')
+        self.assertNotContains(response, 'href="/teacher/roster/"')
+        self.client.logout()
+        self.assertNotContains(self.client.get("/"), 'aria-label="工作区导航"')
+
     def test_two_users_same_browser_activate_login_me_logout(self):
         import_roster(self.csv)
         self.assertRedirects(self.client.get("/me/"), "/login/?next=/me/")

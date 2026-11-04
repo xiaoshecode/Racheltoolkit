@@ -1,1 +1,12 @@
-{% extends "base.html" %}{% block content %}<a href="/assignments/{{ sub.assignment_id }}/">返回作业</a><p class="eyebrow">整版收件回执</p><h1>{{ sub.assignment.title }} · V{{ sub.version }}</h1><p>{{ sub.student.first_name }}（{{ sub.student.username }}） · {{ sub.received_at|date:"Y-m-d H:i:s" }} 已收齐</p><p>回执编号 <code>{{ sub.pk }}</code></p><p>{% if sub.source == 'teacher' %}教师代交 · {{ sub.submitted_by.first_name }} · {{ sub.note }}{% elif sub.source == 'unknown' %}历史记录 · 操作人未记载{% else %}学生本人提交{% endif %}</p><ol class="panel">{% for a in attachments %}<li><a href="/submissions/{{ sub.pk }}/attachments/{{ a.pk }}/download/">{{ a.file.original_name }}</a> · {{ a.file.size }} 字节</li>{% endfor %}</ol>{% endblock %}
+{% extends "base.html" %}{% load static %}
+{% block title %}V{{ sub.version }} 收件回执 · {{ sub.assignment.title }}{% endblock %}
+{% block head %}{{ block.super }}<link rel="stylesheet" href="{% static 'submissions/workflow.css' %}?v=20261104-ui">{% endblock %}
+{% block content %}<div class="assignment-work">
+<a class="back-link" href="/assignments/{{ sub.assignment_id }}/">← 返回作业</a>
+<header class="page-heading"><div><p class="eyebrow">{{ sub.assignment.teaching_class }} / 整版收件回执</p><h1>{{ sub.assignment.title }} · V{{ sub.version }}</h1></div></header>
+<div class="receipt-status-banner"><span aria-hidden="true">✓</span><div><strong>这一版作业已收齐</strong><p>{{ sub.student.first_name|default:sub.student.username }}（{{ sub.student.username }}） · {{ sub.received_at|date:"Y-m-d H:i:s" }}（北京）</p></div></div>
+<p>{% if sub.source == 'teacher' %}教师代交 · {{ sub.submitted_by.first_name }} · {{ sub.note }}{% elif sub.source == 'unknown' %}历史记录 · 操作人未记载{% else %}学生本人提交{% endif %}</p>
+<section class="workflow-section" aria-labelledby="receipt-files"><div class="section-heading"><h2 id="receipt-files">本版附件</h2><span class="record-count">{{ attachments|length }} 个文件 · 按提交顺序</span></div><ol class="receipt-file-list">{% for a in attachments %}<li><span class="file-position" aria-label="第 {{ forloop.counter }} 项">{{ forloop.counter|stringformat:"02d" }}</span><a href="/submissions/{{ sub.pk }}/attachments/{{ a.pk }}/download/">{{ a.file.original_name }}</a><small>{{ a.file.size|filesizeformat }}</small></li>{% endfor %}</ol></section>
+<p class="receipt-id">回执编号 <code>{{ sub.pk }}</code></p>
+<div class="task-actions"><a class="button button-secondary" href="/assignments/{{ sub.assignment_id }}/">返回作业与历史回执</a></div>
+</div>{% endblock %}

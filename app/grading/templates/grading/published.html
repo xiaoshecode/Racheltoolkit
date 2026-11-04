@@ -1,3 +1,5 @@
-{% extends "grading/base.html" %}{% block title %}成绩已发布{% endblock %}{% block sheet %}<h1>成绩已发布</h1>
-<p>{{ task.teaching_class }} · {{ task.title }} · 发布批次 {{ batch.pk }}，共 {{ batch.grades.count }} 人。</p>
-<a href="{% url 'grading:publish' task.pk %}">返回成绩发布名单</a>{% endblock %}
+{% extends "grading/base.html" %}{% block title %}成绩已发布{% endblock %}{% block sheet %}
+<header class="page-heading"><div><p class="eyebrow">{{ task.teaching_class }} / {{ task.title }}</p><h1>成绩已发布</h1></div><span class="status-pill">发布成功</span></header>
+<div class="publication-success"><strong>共 {{ batch.grades.count }} 人</strong><p>发布批次 {{ batch.pk }}。所选学生可以在个人成绩中查看本批分数。</p></div>
+<p class="record-meta">评语、页上批注及错题还需本班公布对应标准答案后显示。</p>
+<div class="task-links"><a class="button" href="{% url 'grading:publish' task.pk %}">返回成绩发布名单</a><a class="button button-secondary" href="{% url 'grading:teacher_answers' task.pk %}">管理标准答案</a></div>{% endblock %}

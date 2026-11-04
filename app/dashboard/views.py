@@ -75,13 +75,16 @@ def report_data(request):
             else:
                 status = "submitted"
             cells.append({"task":task, "receipt":receipt, "grade":grade, "status":status, "label":STATUS[status],
-                          "score":number(grade.score) if grade else None})
+                          "score":number(grade.score) if grade else None,
+                          "score_percent":number(100 * grade.score / grade.max_points) if grade else None,
+                          "score_band":min(3, int(4 * grade.score / grade.max_points)) if grade else None})
         if selected_status and not any(c["status"]==selected_status for c in cells):
             continue
         rows.append({"student": student, "cells":cells})
     filters = {"class":group.pk, "q":query, "assignment":task_id, "status":selected_status}
     page = Paginator(rows, 25).get_page(request.GET.get("page"))
     return {"groups":groups, "group":group, "choices":all_work, "columns":columns, "rows":rows, "page":page,
+            "student_count":students.count(), "column_count":len(columns), "table_colspan":len(columns) + 1,
             "filters":filters, "statuses":STATUS, "querystring":urlencode(filters),
             "back_query":urlencode({**filters,"page":page.number})}
 

@@ -1,1 +1,6 @@
-{% extends "base.html" %}{% block content %}<p class="eyebrow">教师工作区</p><h1>课程编辑</h1>{% for course in courses %}<p><a href="{% url 'catalog_editor' course.pk %}">{{ course.title }}</a></p>{% endfor %}{% endblock %}
+{% extends "base.html" %}{% load static %}
+{% block title %}课程编辑 · 教师工作区{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'catalog/catalog.css' %}?v=20261104-ui">{% endblock %}
+{% block content %}<p class="eyebrow">教师工作区</p><h1>课程编辑</h1><p class="muted">选择课程，整理章节与资料。每门课程先保存草稿，再统一发布。</p>
+<div class="catalog-heading"><h2>我可编辑的课程</h2><span>{{ courses|length }} 门</span></div>
+{% for course in courses %}<article class="teacher-course"><span class="catalog-number">{{ forloop.counter|stringformat:"02d" }}</span><div><small class="eyebrow">{{ course.code }}</small><h2><a href="{% url 'catalog_editor' course.pk %}">{{ course.title }}</a></h2><span class="status-pill">{% if course.publication %}已发布第 {{ course.publication.revision.seq }} 版{% else %}尚未发布{% endif %}</span></div><div class="actions"><a class="button" href="{% url 'catalog_editor' course.pk %}" aria-label="编辑课程：{{ course.title }}">编辑课程</a>{% if course.publication %}<a href="{% url 'catalog_course' course.pk %}">查看公开课程</a>{% endif %}</div></article>{% endfor %}{% endblock %}

@@ -14,7 +14,11 @@ let current, info, doc, bitmap, page = 1, turn = 0, zoom = 1, mode = "ink", stro
 let loadId = 0, paintId = 0;
 
 function sync() {
-  if (editable) one("#annotation-value").value = JSON.stringify(notes);
+  if (editable) {
+    const value = one("#annotation-value");
+    value.value = JSON.stringify(notes);
+    value.dispatchEvent(new Event("input", { bubbles: true }));
+  }
 }
 function currentNotes() {
   return notes.filter(note => String(note.attachment_id) === String(current.id) && note.page === page);

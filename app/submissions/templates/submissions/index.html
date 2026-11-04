@@ -1,1 +1,9 @@
-{% extends "base.html" %}{% block title %}班级作业{% endblock %}{% block content %}<p class="eyebrow">教学空间</p><h1>班级作业</h1>{% for g in classes %}<p><a href="/teacher/classes/{{ g.pk }}/assignments/new/">给 {{ g.code }} 布置作业</a></p>{% endfor %}<div class="panel">{% for w in assignments %}<p><a href="/assignments/{{ w.pk }}/">{{ w.title }}</a> · {{ w.teaching_class.code }}<br><small>{{ w.due_at|date:"m 月 d 日 H:i" }} 截止</small></p>{% empty %}<p>目前没有可见的班级作业。</p>{% endfor %}</div>{% endblock %}
+{% extends "base.html" %}{% load static %}
+{% block title %}班级作业{% endblock %}
+{% block head %}{{ block.super }}<link rel="stylesheet" href="{% static 'submissions/workflow.css' %}?v=20261104-ui">{% endblock %}
+{% block content %}<div class="assignment-work">
+<header class="page-heading"><div><p class="eyebrow">教学空间 / 作业</p><h1>班级作业</h1><p>查看作业要求、提交整版作答，或继续本班批阅。</p></div></header>
+{% if classes %}<nav class="task-actions" aria-label="布置班级作业">{% for g in classes %}<a class="button button-secondary" href="/teacher/classes/{{ g.pk }}/assignments/new/">给 {{ g.code }} 布置作业</a>{% endfor %}</nav>{% endif %}
+<div class="section-heading workflow-section"><h2>全部可见作业</h2><span class="record-count">{{ assignments|length }} 份 · 按截止时间从新到旧</span></div>
+<ul class="assignment-list">{% for w in assignments %}<li><a href="/assignments/{{ w.pk }}/"><div><h2>{{ w.title }}</h2><p>{{ w.teaching_class }} · 满分 {{ w.max_points }} 分</p></div><p class="assignment-due">北京时间截止<strong>{{ w.due_at|date:"Y-m-d H:i" }} <span aria-hidden="true">→</span></strong></p></a></li>{% empty %}<li class="empty-state"><h2>目前没有可见的班级作业</h2><p>作业发布后，会在这里显示要求和截止时间。</p></li>{% endfor %}</ul>
+</div>{% endblock %}
