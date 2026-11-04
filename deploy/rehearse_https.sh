@@ -41,11 +41,12 @@ for attempt in $(seq 1 45); do
 done
 curl_ci() { curl --cacert .local/fixture-ca.pem -sSf --noproxy '*' "$@"; }
 for attempt in $(seq 1 45); do
-    if curl_ci https://teaching.test/health/ | grep -q '"ok"'; then break; fi
+    if curl_ci https://teaching.test/health/ | grep '"ok"' >/dev/null; then break; fi
     sleep 2
 done
-curl_ci https://teaching.test/health/ | grep -q '"ok"'
-curl_ci https://teaching.test/static/school.css | grep -q 'box-sizing'
+# Consume the whole response so pipefail does not mistake an early grep exit for a curl failure.
+curl_ci https://teaching.test/health/ | grep '"ok"' >/dev/null
+curl_ci https://teaching.test/static/school.css | grep 'box-sizing' >/dev/null
 docker compose exec -T web python app/manage.py shell -c 'from school.models import Term; Term.objects.create(code="restart-sentinel")'
 (
     cd ..
@@ -54,13 +55,13 @@ docker compose exec -T web python app/manage.py shell -c 'from school.models imp
 )
 test "$(cat ../.local/current-release)" = "$GITHUB_SHA"
 test ! -f ../.local/deploy-incomplete
-sudo find "$field_backup" -name manifest.json | grep -q manifest.json
+sudo find "$field_backup" -name manifest.json | grep manifest.json >/dev/null
 docker compose restart web
 for attempt in $(seq 1 25); do
-    if curl_ci https://teaching.test/api/public/courses/ | grep -q courses; then break; fi
+    if curl_ci https://teaching.test/api/public/courses/ | grep courses >/dev/null; then break; fi
     sleep 2
 done
-curl_ci https://teaching.test/api/public/courses/ | grep -q courses
+curl_ci https://teaching.test/api/public/courses/ | grep courses >/dev/null
 docker compose exec -T web python app/manage.py shell -c 'from school.models import Term; assert Term.objects.filter(code="restart-sentinel").exists()'
 docker compose exec -T web python app/manage.py shell -c '
 from django.utils import timezone
@@ -73,6 +74,6 @@ CoursePublication.objects.create(course=c, revision=r)'
 SSL_CERT_FILE="$PWD/.local/fixture-ca.pem" NO_PROXY="portal.test,teaching.test" \
     python3 verify_entrypoints.py --portal https://portal.test/Racheltoolkit/ --teaching-origin https://teaching.test
 TEACH_BACKUP_DIR="$PWD/.local/independent-backup" sh backup.sh
-sudo find "$PWD/.local/independent-backup" -name manifest.json | grep -q manifest.json
+sudo find "$PWD/.local/independent-backup" -name manifest.json | grep manifest.json >/dev/null
 printf 'PASS isolated HTTPS, production settings, static CSS, restart and persisted SQLite record\n'
 
