@@ -11,6 +11,8 @@ python app/manage.py render_previews --limit 20
 python app/manage.py render_previews --asset 1 --retry-failed
 ```
 
+构建时可用 `--build-arg OFFICE_BASE_IMAGE=debian@sha256:已核验摘要` 固定基础镜像。在阿里云中国内地服务器上，若 Debian 下载缓慢，可加 `--build-arg DEBIAN_MIRROR=http://mirrors.aliyun.com` 选择邻近镜像；APT 继续校验 Debian 的仓库签名和包摘要。应记录构建参数及最终镜像 ID，并用合成 Word 文件验证转换及失败重试。
+
 转换子容器通过标准输入读取一份源件，标准输出返回 PDF，禁网，不挂载主机目录、不传入云盘凭证。根文件系统只读，临时区、进程数、CPU、内存、文件大小和总时长受限。宏安全等级设为最高；外链无法通过网络加载。限制 Docker CLI 权限只授予专用工作人员。镜像必须预先构建，运行时使用 `--pull=never`。部署时另验中文字体、DOC/DOCX/PPT 版式、失败重试和低资源超时。浏览器从原业务对象端点重新核权后读取派生件；未授权者不获得存储路径。
 
 Seafile 库内预建 `公开课件`、`学生作业`、`教师备课`、`教学归档` 四个根目录。配置 `TEACH_STORAGE_BACKEND=seafile`、`SEAFILE_BASE_URL`、`SEAFILE_LIBRARY_ID` 与服务器专用 `SEAFILE_REPO_TOKEN`。仅在文件服务确实使用另一个 HTTPS 来源时设置逗号分隔的 `SEAFILE_TRANSFER_ORIGINS`。确认库根外链已撤销。上传后失联时，核对原路径的大小和哈希；重试绝不覆盖现有对象。只有原写入确已终止、对象缺失时，维护者才可释放对应的存储认领。
