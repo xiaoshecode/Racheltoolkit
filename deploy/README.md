@@ -40,6 +40,8 @@ SQLite、私有上传、密钥和日志放在工作区 `.local/codespaces/`；�
 
 ## 生产主机
 
+使用自有云服务器、私有本地文件目录和公网 IP HTTPS 时，参见[单机部署说明](LOCAL.md)。以下流程适用于私有 Seafile 存储；两种配置应分别选择，不能直接更换已有数据库的文件存储位置。
+
 使用有持久化磁盘的 Linux 主机、Docker Compose、指向主机的 HTTPS 域名和独立的私有备份目录。让域名解析指向服务器，开放 80、443 给 Caddy。应用容器只通过内部网络提供 WSGI。数据库保存在持久卷 `teaching-data`；反向代理只能读取单独的公共静态卷。
 
 1. 检出已通过 CI 的 SHA，保存运行镜像的版本和回退版本。复制 `deploy/.env.example` 为 `deploy/.env`，使用私有权限填写真实域名、长随机 Django 密钥、库标识和专用 Seafile 库令牌。不要把真实值提交到 Git。

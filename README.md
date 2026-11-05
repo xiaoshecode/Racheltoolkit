@@ -1,6 +1,6 @@
 # 吉老师个人教学空间
 
-[公开课程入口](https://xiaoshecode.github.io/Racheltoolkit/)使用 GitHub Pages。登录、课程发布、整版回执、教师批阅、标准答案和个人错题由 Django 教学站提供。SQLite 保存业务记录，生产文件使用服务器代理访问私有 Seafile 资料库。
+[公开课程入口](https://xiaoshecode.github.io/Racheltoolkit/)使用 GitHub Pages。登录、课程发布、整版回执、教师批阅、标准答案和个人错题由 Django 教学站提供。SQLite 保存业务记录，文件可使用服务器私有持久目录或通过服务器代理访问私有 Seafile 资料库。
 
 ## Codespaces 在线试用
 
@@ -42,6 +42,8 @@ python -m venv .venv
 ## 部署
 
 生产镜像、HTTPS 代理、云盘探测、备份和兼容版本回退见 [教学站部署手册](deploy/README.md)。Pages 使用仓库变量 `TEACH_ORIGIN` 接入已验证的教学主机。当前站点是否开放真实教学，以项目验收台账的 M7c 和 M8 记录为准。
+
+自有云服务器使用本地私有文件存储时，按[单机部署与公网 IP HTTPS](deploy/LOCAL.md)准备持久化目录、文档预览和异机备份。GitHub Pages 保留为入口，后端地址通过 `TEACH_ORIGIN` 切换。
 
 已准备 **Deploy teaching host** 手动工作流、迁移前快照和 HTTPS 健康检查，以及[后台预览与每日备份定时器](deploy/systemd/README.md)。工作流需要已有 Linux 主机和私有配置，不会自动提供服务器。师生实际操作见[使用指南](docs/user-guide.md)。
 
