@@ -1,8 +1,17 @@
-# 单机私有存储与公网 IP HTTPS
+# 单机私有存储、域名与公网 IP HTTPS
 
 本方案在持久化 Linux 主机上运行 `config.production_local`。Django 使用私有本地文件存储和 SQLite，Caddy 提供 HTTPS 及公共静态资源。它使用独立的 `compose.local.yml`；现有 Seafile 生产配置保持独立。
 
-公网 IP 可以申请受浏览器信任的证书。Let's Encrypt 的 IP 证书使用 `shortlived` profile，有效期为 160 小时，Caddy 自动续期。[证书说明](https://letsencrypt.org/2026/01/15/6day-and-ip-general-availability)、[Caddy TLS 配置](https://caddyserver.com/docs/caddyfile/directives/tls)。`Caddyfile.ip` 显式选择该签发方式，并使用 `default_sni` 为未发送 SNI 的 IP 请求选择证书。Caddy 镜像固定为 2.11.8 及其摘要；更新时应重新核对官方版本、摘要和 HTTPS 验证结果。
+默认使用域名和现有 `Caddyfile`，由 Caddy 自动申请并续期公开受信任的 HTTPS 证书。将域名的 DNS A 记录解析到服务器公网 IPv4，`TEACH_HOST` 填写与之对应的完整域名。[Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)
+
+公网 IP 访问是可选模式。Let's Encrypt 的 IP 证书使用 `shortlived` profile，有效期为 160 小时，Caddy 自动续期。[证书说明](https://letsencrypt.org/2026/01/15/6day-and-ip-general-availability)、[Caddy TLS 配置](https://caddyserver.com/docs/caddyfile/directives/tls)。选择 `Caddyfile.ip` 时，配置会显式使用该签发方式，并设置 `default_sni` 为未发送 SNI 的 IP 请求选择证书。
+
+| 访问方式 | `TEACH_HOST` | `TEACH_CADDY_FILE` |
+| --- | --- | --- |
+| 域名（默认） | 实际完整域名，例如 `teach.example.org` | `./Caddyfile` |
+| 公网 IPv4 | 实际稳定公网 IPv4 | `./Caddyfile.ip` |
+
+Caddy 镜像固定为 2.11.8 及其摘要；更新时应重新核对官方版本、摘要和 HTTPS 验证结果。
 
 **IP HTTPS 是技术访问方式，不替代网站备案。** 阿里云说明，托管于中国内地的网站无论通过域名还是 IP 对外提供服务，都需要完成 ICP 备案；其代备案系统只支持域名备案。公开上线条件应依服务器实际地域及服务商要求核对。[阿里云备案要求](https://help.aliyun.com/zh/icp-filing/basic-icp-service/product-overview/icp-filing-requirements-for-a-regular-website)。
 
@@ -24,9 +33,9 @@ web 以 UID 10001 运行，根文件系统只读，临时目录使用受限 tmpf
 
 ## 首次安装或迁移
 
-1. 核对 Linux、Docker Compose、公网 IPv4、剩余磁盘及已有服务。确认安全组、主机防火墙和上游网络允许 TCP 80/443；证书验证和续期都依赖这些端口及访问 ACME 服务的出站网络。公网 IP 改变时，需要同步修改 HTTPS、应用主机名和 Pages 配置。
+1. 核对 Linux、Docker Compose、公网 IPv4、剩余磁盘及已有服务。使用根域名时，添加主机记录 `@` 的 A 记录，值为服务器公网 IPv4；使用子域名时添加对应主机记录。确认公共 DNS 已正确解析；如设置 AAAA 记录，其 IPv6 也必须实际到达这台服务器。确认安全组、主机防火墙和上游网络允许 TCP 80/443；证书验证和续期都依赖这些端口及访问 ACME 服务的出站网络。公网 IP 改变时更新 DNS；采用 IP 访问时还需同步修改 HTTPS、应用主机名和 Pages 配置。
 2. 将核验过的源码放到固定目录。首次空站可创建 `/srv/teaching-data`；迁移时先恢复到新的隔离目录，验证后再确定数据位置。已有目录不得用空目录覆盖，也不能通过改变 Compose 项目名或数据挂载来跳过迁移。
-3. 将 `local.env.example` 复制为私有 `deploy/.env`，填写版本、真实公网 IPv4 和随机 Django 密钥。`TEACH_STORAGE_BACKEND` 必须显式为 `local`，web 的数据路径固定为 `/data`。密钥使用至少 50 字符的高熵随机值，建议在主机生成 96 位十六进制字符串并直接写入私有配置，不在终端或日志打印。
+3. 将 `local.env.example` 复制为私有 `deploy/.env`，填写版本、实际域名和随机 Django 密钥，保留 `TEACH_CADDY_FILE=./Caddyfile`。选择公网 IP 访问时，改填实际公网 IPv4，并设 `TEACH_CADDY_FILE=./Caddyfile.ip`。`TEACH_STORAGE_BACKEND` 必须显式为 `local`，web 的数据路径固定为 `/data`。密钥使用至少 50 字符的高熵随机值，建议在主机生成 96 位十六进制字符串并直接写入私有配置，不在终端或日志打印。
 4. 从 Codespace 迁移时，停止旧站写入，生成**最新**完整快照并下载核验。使用 `restore_teaching` 恢复到新的隔离目录，保留 `restored-library.txt`、数据库及 `private/storage/`；管理员账号及密码哈希随数据库保留。旧站初始密码卡应独立私下保存。验证恢复目录后，将其所有权设为 10001:10001、目录权限设为 0700，再填写 `TEACH_PERSIST_DIR`。
 
 在 `deploy/` 目录执行以下命令。首次启动及升级都显式运行迁移和静态资源收集；容器重启只做生产设置检查并启动网页服务，不自动迁移数据库。
@@ -77,7 +86,7 @@ TEACH_BACKUP_DIR=/srv/teaching-backups sh deploy/backup.sh
 
 ## 对外验证与更新
 
-从外网用系统信任链检查 `https://公网IP/health/`、登录与退出、Secure Cookie、静态资源、私有文件拒绝访问、课程目录和跨域规则。证书必须覆盖这个 IP 且由公开受信任 CA 签发；不能把跳过证书校验或安装 Caddy 内部 CA 当作公网验收。真实验证通过后才设置仓库变量 `TEACH_ORIGIN=https://公网IP` 并重新发布 Pages。
+从外网用系统信任链检查 `https://TEACH_HOST/health/`（替换为实际域名或 IP）、登录与退出、Secure Cookie、静态资源、私有文件拒绝访问、课程目录和跨域规则。证书必须覆盖所使用的域名或 IP，且由公开受信任 CA 签发；不能把跳过证书校验或安装 Caddy 内部 CA 当作公网验收。真实验证通过后才将实际 HTTPS 来源设置为仓库变量 `TEACH_ORIGIN`，并重新发布 Pages。
 
 更新前停止预览及备份定时器、等待在途任务完成，并暂停旧 web 写入，保存独立快照后再迁移。使用同一 Compose 项目和数据路径，保留兼容旧镜像及快照；迁移失败时先保全数据并排查，不能直接覆盖旧库。验证新网页、文件预览、备份恢复与容器重启后持久数据，再恢复定时器。
 

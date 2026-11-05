@@ -1,3 +1,5 @@
+# Optional public-IP mode: set TEACH_CADDY_FILE=./Caddyfile.ip in deploy/.env.
+# For DNS hostnames, use the default ./Caddyfile and automatic HTTPS.
 {
     # Browsers normally omit SNI when connecting to an IP address. In a
     # container behind NAT, select the public IP certificate explicitly.

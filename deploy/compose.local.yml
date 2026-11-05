@@ -62,7 +62,7 @@ services:
     image: caddy:2.11.8@sha256:f04f1e8d78da0c65ec6f81b4ea8d216849775f3bc3c87790d95fcb2ec3722f12
     restart: unless-stopped
     environment:
-      TEACH_HOST: ${TEACH_HOST:?set the public IPv4 address}
+      TEACH_HOST: ${TEACH_HOST:?set the HTTPS hostname or public IPv4 address}
     depends_on:
       web:
         condition: service_healthy
@@ -76,7 +76,7 @@ services:
     pids_limit: 128
     networks: [application, internet]
     volumes:
-      - ./Caddyfile.ip:/etc/caddy/Caddyfile:ro
+      - "${TEACH_CADDY_FILE:-./Caddyfile}:/etc/caddy/Caddyfile:ro"
       - public-static:/srv/staticfiles:ro
       - caddy-data:/data
       - caddy-config:/config
