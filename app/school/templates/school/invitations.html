@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}班级邀请码{% endblock %}
+{% block content %}
+<header class="page-heading"><div><p class="eyebrow">CLASS INVITATIONS</p><h1>邀请学生加入班级</h1><p class="muted">选择班级，生成邀请码，再私下发给本班学生。</p></div><a href="{% url 'school:help' %}#students">查看操作说明</a></header>
+{% if error %}<p class="notice" role="alert">{{ error }}</p>{% endif %}
+{% if code %}<section class="panel" aria-labelledby="issued-title"><h2 id="issued-title">邀请码已生成 · {{ issued.teaching_class }}</h2><p class="notice" role="status">完整邀请码仅在本次页面显示，请现在复制并妥善保存。丢失后可重新生成。</p><p><label for="issued-code">班级邀请码</label><input id="issued-code" value="{{ code }}" readonly autocomplete="off" spellcheck="false"></p><p><label for="registration-url">学生注册入口</label><input id="registration-url" value="{{ registration_url }}" readonly></p><p>有效至 {{ issued.expires_at|date:"Y-m-d H:i" }}，最多 {{ issued.max_uses }} 人加入。</p></section>{% endif %}
+<section class="panel"><h2>生成邀请码</h2><p>同一班级生成新码后，旧码立即失效。已加入的学生不受影响；同一学号重复加入不会重复扣减额度。</p><form method="post">{% csrf_token %}{{ form.as_p }}<button name="action" value="issue">生成新邀请码并停用本班旧码</button></form></section>
+<section class="panel"><h2>最近的邀请码记录</h2><p class="muted">仅显示你当前任教班级的最近 50 条记录。签发老师失去该班任教权限后，其邀请码也将失效。</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">班级</th><th scope="col">已用 / 上限</th><th scope="col">有效至</th><th scope="col">状态与操作</th></tr></thead><tbody>
+{% for invite in invitations %}<tr><td>{{ invite.teaching_class }}<br><small>签发：{{ invite.created_by.first_name|default:invite.created_by.username }}</small></td><td>{{ invite.uses }} / {{ invite.max_uses }}</td><td>{{ invite.expires_at|date:"Y-m-d H:i" }}</td><td>{% if invite.revoked_at %}已停用{% elif invite.expires_at <= now %}已过期{% elif invite.uses >= invite.max_uses %}已用完{% else %}有效期内<form method="post">{% csrf_token %}<input type="hidden" name="invitation" value="{{ invite.pk }}"><button class="button-secondary" name="action" value="revoke">停用此邀请码</button></form>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="4">还没有邀请码。在上方选择班级后生成。</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

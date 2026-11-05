@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% block title %}导入班级名册{% endblock %}
 {% block content %}
-<h1>导入班级名册</h1><p>名册使用三列表头 <code>student_id,name,class_id</code>。学号按文本输入，保留前导零。</p>
+<h1>导入班级名册</h1><p>也可使用<a href="{% url 'school:invitations' %}">班级邀请码</a>让新学生自行注册。已经导入的学号需要个人激活凭证。</p><p>名册使用三列表头 <code>student_id,name,class_id</code>。学号按文本输入，保留前导零。</p>
 <h2>可导入的班级</h2><ul>{% for group in classes %}<li>{{ group }}，班级编号 {{ group.pk }}</li>{% endfor %}</ul>
 <form method="post">{% csrf_token %}{{ form.as_p }}
 <button name="action" value="preview">预检整批名册</button>

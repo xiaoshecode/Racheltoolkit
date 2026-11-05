@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block title %}加入班级{% endblock %}
+{% block content %}<div class="auth-layout">
+<section class="auth-intro"><p class="eyebrow">MY CLASSES</p><h1>加入新的班级</h1><p class="muted">当前学号：{{ user.username }}。填写老师提供的邀请码，继续使用同一个账号学习。</p><p>如果之前的选课已被停用，请联系老师处理。</p><a href="{% url 'school:me' %}">返回学习概览 →</a></section>
+<section class="panel auth-panel"><h2>班级邀请码</h2><form method="post">{% csrf_token %}{{ form.as_p }}<button>加入班级</button></form></section>
+</div>{% endblock %}

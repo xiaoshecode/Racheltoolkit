@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>{% block title %}吉老师个人教学空间{% endblock %}</title>
-<link rel="stylesheet" href="{% static 'school.css' %}?v=20261104-ui">
+<link rel="stylesheet" href="{% static 'school.css' %}?v=20261105-invitations">
 <script src="{% static 'workspace.js' %}?v=20261104-ui" defer></script>
 {% block head %}{% endblock %}</head>
 <body><a class="skip" href="#content">跳到正文</a>
@@ -25,11 +25,13 @@
 {% if workspace_editor %}<a href="/teacher/courses/" {% if workspace_section == 'editor' %}aria-current="page"{% endif %}><span aria-hidden="true">04</span>课程编辑</a>{% endif %}
 <a href="/" {% if workspace_section == 'catalog' %}aria-current="page"{% endif %}><span aria-hidden="true">▤</span>课程目录</a>
 {% if workspace_teacher %}<a href="/teacher/roster/" {% if workspace_section == 'roster' %}aria-current="page"{% endif %}><span aria-hidden="true">＋</span>班级名册</a>{% endif %}
+{% if workspace_teacher %}<a href="{% url 'school:invitations' %}" {% if workspace_section == 'invitations' %}aria-current="page"{% endif %}><span aria-hidden="true">＋</span>班级邀请码</a>{% elif not workspace_editor and not user.is_staff %}<a href="{% url 'school:join' %}" {% if workspace_section == 'join' %}aria-current="page"{% endif %}><span aria-hidden="true">＋</span>加入班级</a>{% endif %}
+<a href="{% url 'school:help' %}" {% if workspace_section == 'help' %}aria-current="page"{% endif %}><span aria-hidden="true">?</span>使用指南</a>
 </nav><p class="nav-footnote">把每一次练习<br>变成下一步的起点。</p></aside>{% endif %}
 <main id="content" tabindex="-1">
 {% if teaching_trial %}<p class="notice" role="status">在线试用站 · 按需开放</p>{% endif %}
 {% if messages %}{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}{% endif %}
 {% block content %}{% endblock %}
 </main></div>
-<footer class="site-footer">吉老师个人教学空间 <span>课程与作业 · Racheltoolkit</span></footer>
+<footer class="site-footer">吉老师个人教学空间 <span><a href="{% url 'school:help' %}">使用指南</a> · 课程与作业 · Racheltoolkit</span></footer>
 {% block scripts %}{% endblock %}</body></html>

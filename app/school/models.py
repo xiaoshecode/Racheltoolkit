@@ -64,3 +64,23 @@ class ActivationOrReset(models.Model):
     digest = models.CharField(max_length=64, unique=True)
     expires_at = models.DateTimeField()
     used_at = models.DateTimeField(null=True)
+
+
+class ClassInvitation(models.Model):
+    teaching_class = models.ForeignKey(TeachingClass, on_delete=models.PROTECT, related_name="invitations")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name="class_invitations")
+    digest = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    max_uses = models.PositiveSmallIntegerField(default=30)
+    uses = models.PositiveSmallIntegerField(default=0)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(max_uses__gte=1, max_uses__lte=500),
+                name="class_invitation_valid_limit"),
+            models.CheckConstraint(condition=models.Q(uses__lte=models.F("max_uses")),
+                name="class_invitation_within_limit"),
+        ]

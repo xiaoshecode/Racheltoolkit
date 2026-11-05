@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block title %}学生注册{% endblock %}
+{% block content %}<div class="auth-layout">
+<section class="auth-intro"><p class="eyebrow">JOIN YOUR CLASS</p><h1>加入班级<br>开始学习</h1><p class="muted">向老师领取班级邀请码，用完整学号注册。注册成功后即可进入自己的学习空间。</p><p>已有账号？<a href="{% url 'school:login' %}?next=/join/">登录后加入班级</a>。</p><p>老师已导入你的学号？请领取个人激活凭证，前往<a href="{% url 'school:activate' %}">首次激活</a>。</p></section>
+<section class="panel auth-panel"><h2>学生注册</h2><form method="post">{% csrf_token %}{{ form.as_p }}<button>注册并加入班级</button></form><p class="muted">邀请码只用于加入班级，教师账号由管理员分配。</p></section>
+</div>{% endblock %}

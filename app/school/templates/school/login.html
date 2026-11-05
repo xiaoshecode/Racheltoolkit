@@ -4,4 +4,5 @@
 <section class="panel auth-panel"><h2>登录工作区</h2>
 {% if request.GET.updated %}<p class="notice" role="status">密码已设置，请重新登录。</p>{% endif %}
 <form method="post">{% csrf_token %}{{ form.as_p }}<input type="hidden" name="next" value="{{ next }}"><button>登录</button></form>
+<p>有班级邀请码？<a href="{% url 'school:register' %}">学生自行注册</a></p>
 <div class="auth-links"><a href="{% url 'school:activate' %}">首次激活</a><a href="{% url 'school:reset' %}">重设密码</a></div></section></div>{% endblock %}

@@ -1,15 +1,16 @@
 {% extends "base.html" %}{% load student_home %}{% block title %}{% if teaching or editing %}教师工作台{% else %}学习概览{% endif %}{% endblock %}
 {% block content %}
 <header class="page-heading"><div><p class="eyebrow">{% if teaching or editing %}TEACHING WORKSPACE{% else %}MY LEARNING{% endif %}</p><h1>{{ user.first_name|default:user.username }}，{% if teaching or editing %}开始今天的教学{% else %}继续你的学习{% endif %}</h1><p class="muted">{% if teaching or editing %}从课程准备，到作业反馈，让每一步都有清晰的落点。{% else %}查看待交作业、收件回执和已经公布的反馈。{% endif %}</p></div><span class="status-pill">账号 {{ user.username }}</span></header>
+{% if user.is_superuser %}<section class="panel"><h2>管理教学站</h2><p>首次使用，请先在后台建立课程与班级，并为教师分配课程编辑权和任课班级。</p><div class="actions"><a class="button button-secondary" href="/admin/">打开管理后台</a><a href="{% url 'school:help' %}#setup">查看首次配置步骤</a></div></section>{% endif %}
 {% if teaching or editing %}
 <div class="workbench-grid">
 {% if teaching %}<section class="panel"><p class="eyebrow">01 · ASSIGNMENTS</p><h2>作业与批阅</h2><p class="muted">安排练习，查看提交版本，在原稿旁完成反馈。</p><div class="actions"><a class="button" href="/assignments/">打开班级作业</a></div></section>
 <section class="panel"><p class="eyebrow">02 · PROGRESS</p><h2>班级学习进展</h2><p class="muted">逐列比较作业，区分未交、待批和已公布成绩。</p><div class="actions"><a class="button button-secondary" href="/dashboard/">查看成绩册</a></div></section>{% endif %}
 {% if editing %}<section class="panel"><p class="eyebrow">03 · COURSE CONTENT</p><h2>准备课程资料</h2><p class="muted">按章节整理材料，检查预览后再发布给学生。</p><div class="actions"><a class="button button-secondary" href="/teacher/courses/">编辑课程</a></div></section>{% endif %}
 </div>
-{% if teaching %}<div class="section-heading"><h2>我的教学班级</h2><a href="{% url 'school:roster' %}">管理班级名册</a></div>
+{% if teaching %}<div class="section-heading"><h2>我的教学班级</h2><div class="actions"><a href="{% url 'school:invitations' %}">生成班级邀请码</a><a href="{% url 'school:roster' %}">管理班级名册</a></div></div>
 <div class="class-list">{% for group in teaching %}<article class="class-row"><div><h3>{{ group.course.title }}</h3><p>{{ group.term }} · {{ group.code }}</p></div><div class="actions"><a href="/dashboard/?class={{ group.pk }}">查看本班成绩 →</a></div></article>{% endfor %}</div>{% endif %}
 {% if editing %}<div class="section-heading"><h2>可编辑课程</h2></div><div class="class-list">{% for course in editing %}<article class="class-row"><div><h3>{{ course.title }}</h3><p>{{ course.code }}</p></div><a href="/teacher/courses/{{ course.pk }}/">进入课程编辑 →</a></article>{% endfor %}</div>{% endif %}
 {% endif %}
-{% if classes %}{% student_home user %}{% elif not teaching and not editing %}<section class="empty-state"><h2>等待加入班级</h2><p>当前账号还没有有效选课。请联系任课教师确认你的学号和班级。</p><a href="/">先浏览公开课程 →</a></section>{% endif %}
+{% if classes %}{% student_home user %}{% elif not teaching and not editing and not user.is_staff %}<section class="empty-state"><h2>等待加入班级</h2><p>当前账号还没有有效选课。可以使用老师提供的邀请码加入班级。</p><a href="{% url 'school:join' %}">填写班级邀请码 →</a></section>{% endif %}
 {% endblock %}

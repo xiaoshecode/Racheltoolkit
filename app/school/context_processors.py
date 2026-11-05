@@ -12,6 +12,7 @@ def workspace(request):
     path = request.path
     section = "home"
     for prefix, key in (("/teacher/courses/", "editor"), ("/teacher/roster/", "roster"),
+                        ("/teacher/invitations/", "invitations"), ("/join/", "join"), ("/help/", "help"),
                         ("/dashboard/", "reports"), ("/teacher/grades/", "reports"),
                         ("/teacher/submissions/", "assignments"), ("/teacher/assignments/", "assignments"),
                         ("/me/grades/", "grades"), ("/me/mistakes/", "mistakes"),
