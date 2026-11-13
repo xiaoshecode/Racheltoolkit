@@ -27,7 +27,7 @@ services:
         bind:
           create_host_path: false
       - public-static:/data/staticfiles
-    networks: [application]
+    networks: [application, internet]
     command:
       - sh
       - -ec

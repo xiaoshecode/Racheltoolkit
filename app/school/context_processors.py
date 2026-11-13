@@ -12,7 +12,8 @@ def workspace(request):
     path = request.path
     section = "home"
     for prefix, key in (("/teacher/courses/", "editor"), ("/teacher/roster/", "roster"),
-                        ("/teacher/invitations/", "invitations"), ("/join/", "join"), ("/help/", "help"),
+                        ("/assistant/", "assistant"), ("/teacher/invitations/", "invitations"),
+                        ("/join/", "join"), ("/help/", "help"),
                         ("/dashboard/", "reports"), ("/teacher/grades/", "reports"),
                         ("/teacher/submissions/", "assignments"), ("/teacher/assignments/", "assignments"),
                         ("/me/grades/", "grades"), ("/me/mistakes/", "mistakes"),
@@ -27,6 +28,9 @@ def workspace(request):
         section = "reports"
     elif path.startswith("/teacher/classes/"):
         section = "assignments"
-    return {**trial, "workspace_teacher": teacher_classes(user).exists(),
-            "workspace_editor": editable_courses(user).exists(),
-            "workspace_student": student_classes(user).exists(), "workspace_section": section}
+    teacher = teacher_classes(user).exists()
+    editor = editable_courses(user).exists()
+    student = student_classes(user).exists()
+    return {**trial, "workspace_teacher": teacher, "workspace_editor": editor,
+            "workspace_student": student, "workspace_section": section,
+            "workspace_assistant": user.is_active and (user.is_staff or teacher or editor or student)}

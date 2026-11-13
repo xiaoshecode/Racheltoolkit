@@ -92,3 +92,26 @@ LOGIN_REDIRECT_URL = "/me/"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 22 * 1024 * 1024
 FILE_UPLOAD_TEMP_DIR = str(RUNTIME)
 TEST_RUNNER = "config.testing.ProjectRunner"
+
+# Optional API credentials stay on the teaching server.
+from .assistant_credentials import local_key
+
+try:
+    DEEPSEEK_API_KEY = local_key(RUNTIME)
+except ValueError:
+    raise ImproperlyConfigured("Cannot read the private local DeepSeek key; check its format and permissions.") from None
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "").strip() or "auto"
+
+
+def assistant_integer(name, default, minimum, maximum):
+    try:
+        value = int(os.environ.get(name, "").strip() or default)
+    except ValueError:
+        raise ImproperlyConfigured(f"{name} must be an integer") from None
+    if not minimum <= value <= maximum:
+        raise ImproperlyConfigured(f"{name} must be between {minimum} and {maximum}")
+    return value
+
+
+DEEPSEEK_TIMEOUT_SECONDS = assistant_integer("DEEPSEEK_TIMEOUT_SECONDS", 60, 5, 90)
+DEEPSEEK_MAX_TOKENS = assistant_integer("DEEPSEEK_MAX_TOKENS", 4096, 256, 16384)

@@ -17,3 +17,10 @@ def editable_courses(user):
     if not user.is_authenticated or not user.is_active:
         return Course.objects.none()
     return Course.objects.filter(editors__teacher=user)
+
+
+def assistant_access(user):
+    return bool(user.is_authenticated and user.is_active and (
+        user.is_staff or student_classes(user).exists() or teacher_classes(user).exists()
+        or editable_courses(user).exists()
+    ))

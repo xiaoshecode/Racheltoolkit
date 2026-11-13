@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>{% block title %}吉老师个人教学空间{% endblock %}</title>
-<link rel="stylesheet" href="{% static 'school.css' %}?v=20261105-invitations">
+<link rel="stylesheet" href="{% static 'school.css' %}?v=20261114-uploads">
 <script src="{% static 'workspace.js' %}?v=20261104-ui" defer></script>
 {% block head %}{% endblock %}</head>
 <body><a class="skip" href="#content">跳到正文</a>
@@ -23,6 +23,7 @@
 {% if workspace_teacher %}<a href="/dashboard/" {% if workspace_section == 'reports' %}aria-current="page"{% endif %}><span aria-hidden="true">03</span>班级成绩册</a>{% endif %}
 {% if workspace_student %}<a href="/me/grades/" {% if workspace_section == 'grades' %}aria-current="page"{% endif %}><span aria-hidden="true">↗</span>我的成绩</a><a href="/me/mistakes/" {% if workspace_section == 'mistakes' %}aria-current="page"{% endif %}><span aria-hidden="true">↺</span>我的错题</a>{% endif %}
 {% if workspace_editor %}<a href="/teacher/courses/" {% if workspace_section == 'editor' %}aria-current="page"{% endif %}><span aria-hidden="true">04</span>课程编辑</a>{% endif %}
+{% if workspace_assistant %}<a href="{% url 'school:assistant' %}" {% if workspace_section == 'assistant' %}aria-current="page"{% endif %}><span aria-hidden="true">✧</span>AI 学习助手</a>{% endif %}
 <a href="/" {% if workspace_section == 'catalog' %}aria-current="page"{% endif %}><span aria-hidden="true">▤</span>课程目录</a>
 {% if workspace_teacher %}<a href="/teacher/roster/" {% if workspace_section == 'roster' %}aria-current="page"{% endif %}><span aria-hidden="true">＋</span>班级名册</a>{% endif %}
 {% if workspace_teacher %}<a href="{% url 'school:invitations' %}" {% if workspace_section == 'invitations' %}aria-current="page"{% endif %}><span aria-hidden="true">＋</span>班级邀请码</a>{% elif not workspace_editor and not user.is_staff %}<a href="{% url 'school:join' %}" {% if workspace_section == 'join' %}aria-current="page"{% endif %}><span aria-hidden="true">＋</span>加入班级</a>{% endif %}

@@ -183,6 +183,8 @@ def deploy(root, sha):
                 worker_env = dict(env, PIP_CACHE_DIR=str(runtime / "cache"), TMPDIR=str(runtime))
                 run([str(worker_python), "-m", "pip", "install", "-r", "requirements.txt"],
                     cwd=root, env=worker_env)
+            run(compose + ["run", "--rm", "--no-deps", "web", "python", "app/manage.py",
+                           "collectstatic", "--noinput"], cwd=working, env=env)
             run(compose + ["up", "-d", "web", "https"], cwd=working, env=env)
             health("https://" + host)
             persist_release(working / ".env", sha)

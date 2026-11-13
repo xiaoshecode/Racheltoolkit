@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}AI 学习助手 · 吉老师个人教学空间{% endblock %}
+{% block content %}
+<div class="ai-chat" data-chat-root>
+<header class="page-heading ai-chat-heading"><div><p class="eyebrow">LEARN TOGETHER</p><h1>AI 学习助手</h1><p class="muted">把问题说清楚，一步一步理解知识、整理思路。</p></div>{% if assistant_enabled %}<span class="status-pill">{% if assistant_model == "auto" %}自动选择模型{% else %}{{ assistant_model }}{% endif %}</span>{% endif %}</header>
+{% if assistant_enabled %}
+<section class="ai-chat-panel" aria-label="学习对话">
+<div class="ai-chat-toolbar"><p>当前对话仅保留在此页面</p><button type="button" class="quiet" data-chat-new>新对话</button></div>
+<div class="ai-chat-transcript" data-chat-transcript role="log" aria-label="对话记录" aria-relevant="additions" aria-live="off" tabindex="0">
+<div class="ai-chat-welcome" data-chat-welcome><span class="ai-chat-mark" aria-hidden="true">问</span><h2>今天想弄懂什么？</h2><p>可以描述一道题、一个概念，或告诉我你卡在哪一步。</p><div class="ai-chat-examples" aria-label="试试这些问题">
+<button type="button" class="secondary" data-chat-prompt="请用一个生活中的例子，帮我理解函数的定义。">用例子理解概念 <span aria-hidden="true">↗</span></button>
+<button type="button" class="secondary" data-chat-prompt="我解题时不知道从哪里开始，请教我怎样分析题目条件和目标。">梳理解题思路 <span aria-hidden="true">↗</span></button>
+<button type="button" class="secondary" data-chat-prompt="请帮我安排一个 30 分钟的数学复习计划，包含回顾、练习和检查。">制定复习计划 <span aria-hidden="true">↗</span></button>
+</div></div>
+</div>
+<button type="button" class="secondary ai-chat-jump" data-chat-jump hidden>回到最新回复 ↓</button>
+<div class="ai-chat-error" data-chat-error hidden><p data-chat-error-text role="alert"></p><button type="button" class="secondary" data-chat-retry hidden>重试这次提问</button></div>
+<p class="ai-chat-status" data-chat-status role="status" aria-live="polite"></p>
+<form class="ai-chat-composer" data-chat-form data-chat-endpoint="{% url 'school:chat_completion' %}" data-chat-upload-endpoint="{% url 'school:chat_uploads' %}">
+{% csrf_token %}
+<label class="ai-chat-input-label" for="chat-question">你的问题</label>
+<textarea id="chat-question" name="question" rows="3" maxlength="4000" placeholder="输入问题，也可以告诉我你已经尝试过的方法……" aria-describedby="chat-input-help" required></textarea>
+<div class="ai-chat-upload-area"><label class="ai-chat-attach-button" for="chat-files">＋ 图片 / 文件<input id="chat-files" type="file" data-chat-files multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.csv,.json,.xls,.xlsx"></label><span>每轮最多 3 个 · 合计 20MB</span><div class="ai-chat-attachments" data-chat-attachments aria-live="polite"></div></div>
+<div class="ai-chat-composer-actions"><label class="ai-chat-thinking"><input type="checkbox" name="thinking" data-chat-thinking> 深度思考</label><span id="chat-input-help">Enter 发送 · Shift + Enter 换行</span><div class="actions"><button type="button" class="secondary" data-chat-stop hidden>停止生成</button><button type="submit" data-chat-send disabled>发送问题 <span aria-hidden="true">↑</span></button></div></div>
+<div class="ai-chat-consent"><label><input type="checkbox" name="consent" data-chat-consent required> 我同意将输入的问题、选中的附件和当前对话发送给 DeepSeek 处理</label><p>不会自动读取站内课程文件、作业或成绩。PDF、Word、PPT 文档解析可能产生费用；附件一小时后过期。</p></div>
+</form>
+</section>
+<p class="ai-chat-footnote">AI 的回答可能有误。请结合教材和老师的讲解核对关键结论。</p>
+<noscript><p class="notice">请开启浏览器的 JavaScript 后使用学习助手。</p></noscript>
+{% else %}
+<section class="empty-state ai-chat-unavailable"><span class="ai-chat-mark" aria-hidden="true">问</span>{% if assistant_denied %}<h2>加入班级后开始对话</h2><p>请先使用老师提供的邀请码加入教学班级。</p><a class="button button-secondary" href="{% url 'school:join' %}">加入班级</a>{% else %}<h2>学习助手尚未开启</h2><p>老师还没有开启 AI 学习助手。你可以先查看课程资料，或把问题记录下来向老师请教。</p>{% endif %}<a class="button button-secondary" href="/">查看课程资料</a></section>
+{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}{% if assistant_enabled %}<script src="{% static 'vendor/marked-17.0.5.js' %}" defer></script><script src="{% static 'chat.js' %}?v=20261114-uploads" defer></script>{% endif %}{% endblock %}

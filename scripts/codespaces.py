@@ -31,7 +31,8 @@ def environment():
     DATA.chmod(0o700)
     # The web/worker processes do not inherit the Codespace's GitHub credentials.
     allowed = ("PATH", "HOME", "USER", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR",
-               "DOCKER_HOST", "XDG_RUNTIME_DIR")
+               "DOCKER_HOST", "XDG_RUNTIME_DIR", "DEEPSEEK_API_KEY", "DEEPSEEK_MODEL",
+               "DEEPSEEK_TIMEOUT_SECONDS", "DEEPSEEK_MAX_TOKENS")
     env = {key: os.environ[key] for key in allowed if key in os.environ}
     secret_path = DATA / "secret.key"
     if not secret_path.exists():

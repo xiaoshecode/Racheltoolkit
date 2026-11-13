@@ -13,6 +13,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods
 
+from .chat import assistant, chat_completion
 from .accounts import redeem_code
 from .models import ActivationOrReset, ClassInvitation
 from .invitations import issue_invitation, join_class, register_student, revoke_invitation
